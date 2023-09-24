@@ -1,0 +1,32 @@
+name: Check PR Requirements
+
+on:
+  pull_request:
+
+jobs:
+  check-pr:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Check for new root directory
+      run: |
+        NEW_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^[^/]\+/$')
+        TOTAL_CHANGES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | wc -l)
+        DIR_COUNT=$(echo "$NEW_DIRS" | wc -l)
+        if [[ -z "$NEW_DIRS" || "$DIR_COUNT" -ne 1 || "$TOTAL_CHANGES" -ne 1 ]]; then
+          echo "PR must contain only one new root directory and no other changes!"
+          exit 1
+        fi
+        echo "New directory: $NEW_DIRS"
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.21'
+
+    - name: Build Go Project in New Directory
+      run: |
+        cd $NEW_DIRS
+        go build
