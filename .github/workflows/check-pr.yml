@@ -8,18 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Check for new root directory
+    - name: Install Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
       run: |
-        NEW_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^[^/]\+/$')
-        TOTAL_CHANGES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | wc -l)
-        DIR_COUNT=$(echo "$NEW_DIRS" | wc -l)
-        if [[ -z "$NEW_DIRS" || "$DIR_COUNT" -ne 1 || "$TOTAL_CHANGES" -ne 1 ]]; then
-          echo "PR must contain only one new root directory and no other changes!"
-          exit 1
-        fi
-        echo "New directory: $NEW_DIRS"
+        npm install axios
+
+    - name: Get root directory
+      run: node .github/scripts/get_root_directories.js
+      id: get-dir
 
     - name: Setup Go
       uses: actions/setup-go@v2
@@ -28,5 +30,5 @@ jobs:
 
     - name: Build Go Project in New Directory
       run: |
-        cd $NEW_DIRS
+        cd ${{ steps.get-dir.outputs.root_directory }}
         go build
