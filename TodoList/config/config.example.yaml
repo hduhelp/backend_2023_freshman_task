@@ -1,9 +1,9 @@
 database:
   mysql:
     username: "root"
-    password: "xxxxxxx"
-    host: "localhost"
-    port: 3306
-    dbname: "xxxxxx"
+    password: "数据库密码"
+    host: "ip"
+    port: 端口
+    dbname: "数据库名"
 secret:
-  signatureKey: "xxxxxx"
+  signatureKey: "设置的密钥"
