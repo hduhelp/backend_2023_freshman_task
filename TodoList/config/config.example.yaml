@@ -1,6 +1,6 @@
 database:
   mysql:
-    username: "root"
+    username: "数据库用户名"
     password: "数据库密码"
     host: "ip"
     port: 端口
