@@ -16,10 +16,10 @@ import (
 
 const (
 	username = "root"
-	password = "lyr20041207"
+	password = "xxxxxxxx"
 	host     = "localhost"
 	port     = 3316
-	dbname   = "help_test"
+	dbname   = "xxxxx"
 )
 
 type Todo struct {

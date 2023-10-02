@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"time"
 )
 
@@ -12,7 +11,7 @@ type MyPayload struct {
 }
 
 // 定义secret签名
-var signatureKey []byte = []byte("hduhelp")
+var signatureKey []byte = []byte("xxxxxx")
 
 // MakeUserToken 生成加密token
 func MakeUserToken(username string) string {
