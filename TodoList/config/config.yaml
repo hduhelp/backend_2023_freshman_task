@@ -1,0 +1,9 @@
+database:
+  mysql:
+    username: "root"
+    password: "xxxxxxx"
+    host: "localhost"
+    port: 3306
+    dbname: "xxxxxx"
+secret:
+  signatureKey: "xxxxxx"

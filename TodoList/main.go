@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TodoList/config"
 	"TodoList/utils"
 	"database/sql"
 	"fmt"
@@ -8,19 +9,20 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-const (
-	username = "root"
-	password = "xxxxxxxx"
-	host     = "localhost"
-	port     = 3316
-	dbname   = "xxxxx"
-)
+type Database struct {
+	Username string
+	Password string
+	Host     string
+	Port     int
+	DBname   string
+}
 
 type Todo struct {
 	ID      int    `json:"id"`
@@ -38,7 +40,15 @@ type User struct {
 
 // 连接数据库
 func connectToDatabase() (*sql.DB, error) {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", username, password, host, port, dbname)
+	config.InitConfig()
+	ms := Database{
+		Username: viper.GetString("database.mysql.username"),
+		Password: viper.GetString("database.mysql.password"),
+		Host:     viper.GetString("database.mysql.host"),
+		Port:     viper.GetInt("database.mysql.port"),
+		DBname:   viper.GetString("database.mysql.dbname"),
+	}
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", ms.Username, ms.Password, ms.Host, ms.Port, ms.DBname)
 	db, err := sql.Open("mysql", dataSourceName) // 打开mysql数据库
 	if err != nil {
 		return nil, err

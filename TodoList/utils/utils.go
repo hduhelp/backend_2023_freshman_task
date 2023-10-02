@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/dgrijalva/jwt-go"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -12,7 +13,7 @@ type MyPayload struct {
 }
 
 // 定义secret签名
-var signatureKey []byte = []byte("xxxxxx")
+var signatureKey []byte = []byte(viper.GetString("secret.signatureKey"))
 
 // MakeUserToken 生成加密token
 func MakeUserToken(username string) string {
