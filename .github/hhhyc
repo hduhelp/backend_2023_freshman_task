@@ -1,0 +1,258 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
+	"os"
+)
+
+// TODO 结构体表示待办事项
+type TODO struct {
+	TrackingNumber string `json:"tracking_number"` // 跟踪号
+	Time           string `json:"time"`            // 时间
+	Location       string `json:"location"`        // 位置
+	Recipient      string `json:"recipient"`       // 收件人
+	Status         string `json:"status"`          // 状态
+}
+
+var todos []TODO            // 存储所有的 TODO
+var filename = "todos.json" // 存储 TODO 的文件名
+
+func main() {
+	//`gin.Default()` 是 Gin 框架中创建路由引擎的一种简便方法。它返回一个默认的 Gin 路由引擎实例
+	router := gin.Default()
+
+	loadTodosFromFile() // 从文件加载 TODO 列表
+
+	// 添加五个 TODO 项
+	addTodo(TODO{
+		TrackingNumber: "123456789",
+		Time:           "2023-09-30 10:00",
+		Location:       "Warehouse A",
+		Recipient:      "John Doe",
+		Status:         "In Transit",
+	})
+	addTodo(TODO{
+		TrackingNumber: "987654321",
+		Time:           "2023-09-30 14:00",
+		Location:       "Warehouse B",
+		Recipient:      "Jane Smith",
+		Status:         "Delivered",
+	})
+	addTodo(TODO{
+		TrackingNumber: "555555555",
+		Time:           "2023-09-30 16:30",
+		Location:       "Warehouse C",
+		Recipient:      "Alice Johnson",
+		Status:         "Out for Delivery",
+	})
+	addTodo(TODO{
+		TrackingNumber: "111111111",
+		Time:           "2023-09-30 12:30",
+		Location:       "Warehouse D",
+		Recipient:      "Bob Anderson",
+		Status:         "In Transit",
+	})
+	addTodo(TODO{
+		TrackingNumber: "999999999",
+		Time:           "2023-09-30 18:00",
+		Location:       "Warehouse E",
+		Recipient:      "Emily Davis",
+		Status:         "Pending",
+	})
+
+	//URL ：= http://www.example.com:8080/articles/guides/intro?page=1&sort=desc#section-2
+	//协议：`http://`
+	//域名：`www.example.com`
+	//端口：`:8080`
+	//路径：`/articles/guides/intro`
+	//查询参数：`?page=1&sort=desc`
+	//片段标识符：`#section-2`
+
+	router.GET("/todos", getTodos) // 获取所有 TODO
+	// /todo/:tracking_number 这边一定要加‘：’  不加冒号的话就无法实现连接
+	/*使用`/todo/tracking__number`作为路由路径无法成功匹配的原因是，Gin框架中的路由路径参数应该以冒号（:）开头，而不是直接使用固定的字符串。
+	当您使用`/todo/:tracking_number`作为路由路径时，Gin框架会将`:tracking_number`解释为一个路径参数，
+	并将实际的路径参数值传递给处理函数中的对应参数。
+	这样，您就可以在`updateTodoByTrackingNumber`函数中使用`c.Param("tracking_number")`来获取URL中的跟踪号。*/
+	router.GET("/todo/:tracking_number", getTodoByTrackingNumber) // 根据跟踪号查询 TODO
+	router.POST("/todo", addTodoFromForm)
+	router.PUT("/todo/:tracking_number", updateTodoByTrackingNumber)
+	router.DELETE("/todo/:tracking_number", deleteTodoByTrackingNumber)
+	//注意： 函数后面不用加（）
+	router.Run(":8080")
+}
+
+// addTodoFromForm 从表单数据添加 TODO
+func addTodoFromForm(c *gin.Context) {
+	//`c.PostForm` 是 Gin 框架中的一个方法，用于获取客户端 POST 请求中的表单数据。
+	trackingNumber := c.PostForm("tracking_number")
+	time := c.PostForm("time")
+	location := c.PostForm("location")
+	recipient := c.PostForm("recipient")
+	status := c.PostForm("status")
+	//这是 一个赋值的过程， 上面的代码得到time 的值 然后赋值给 todo.Time 为time
+	todo := TODO{
+		TrackingNumber: trackingNumber,
+		Time:           time,
+		Location:       location,
+		Recipient:      recipient,
+		Status:         status,
+	}
+	//其实这段代码也可以用ShouldBindJson实现，具体实现结果类似于update函数中的内容
+
+	addTodo(todo)
+	saveTodosToFile()
+	//http.StatusOK 和 http.StatusBadRequest  是两种状态码  也可以用200和400表示
+	// 一个表示请求成功  ，一个表示请求存在错误
+	fmt.Printf("%v", todos)
+	c.JSON(http.StatusOK, gin.H{"message": "TODO added successfully"})
+}
+
+// addTodo 添加 TODO
+func addTodo(todo TODO) {
+	todos = append(todos, todo)
+	saveTodosToFile() // 保存到文件
+}
+
+// getTodos 获取所有 TODO
+func getTodos(c *gin.Context) {
+	loadTodosFromFile() // 重新加载文件数据
+	c.JSON(http.StatusOK, todos)
+}
+
+// 删除TODO
+func deleteTodoByTrackingNumber(c *gin.Context) {
+	trackingNumber := c.Param("tracking_number")
+	found := false
+
+	for i, todo := range todos {
+		if todo.TrackingNumber == trackingNumber {
+			todos = append(todos[:i], todos[i+1:]...) // 从切片中删除匹配到的TODO
+			found = true
+			break
+		}
+	}
+
+	if found {
+		saveTodosToFile()
+		c.JSON(http.StatusOK, gin.H{"message": "TODO deleted successfully"})
+		return
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{"message": "TODO not found"})
+		return
+	}
+}
+
+// 更新TODO
+func updateTodoByTrackingNumber(c *gin.Context) {
+	trackingNumber := c.Param("tracking_number")
+	found := false
+
+	for i, todo := range todos {
+		if todo.TrackingNumber == trackingNumber {
+			//设定一个bool值，可以更加明显的区分是否成功更新
+			found = true
+			var updatedTodo TODO
+			/*ShouldBindJSON` 函数：
+			`ShouldBindJSON` 函数是一个高级函数，它尝试将请求的 JSON 数据绑定到指定的结构体对象上。
+			如果绑定成功，它会返回 `nil`，否则会返回一个错误。
+			如果绑定失败，它会自动将错误信息设置到 Gin 上下文的错误字段中，并返回一个 HTTP 400 Bad Request 响应。
+			`ShouldBindJSON` 函数通常用于在绑定请求数据时进行验证，并处理验证失败的情况。
+			`BindJSON` 函数：
+			`BindJSON` 函数是一个低级函数，它将请求的 JSON 数据直接绑定到指定的结构体对象上。
+			如果绑定失败，它不会返回错误，而是将零值或默认值设置到结构体对象中。
+			`BindJSON` 函数不会自动处理验证和错误信息，需要手动检查绑定是否成功，并根据需要处理验证和错误。*/
+			//更新TODO
+			if err := c.ShouldBindJSON(&updatedTodo); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+				return
+			}
+			// 更新TODO
+			//具体的意思就是 如果查到的单号数据不为空，则更新一下。
+			if updatedTodo.Time != "" {
+				todo.Time = updatedTodo.Time
+			}
+			if updatedTodo.Location != "" {
+				todo.Location = updatedTodo.Location
+			}
+			if updatedTodo.Recipient != "" {
+				todo.Recipient = updatedTodo.Recipient
+			}
+			if updatedTodo.Status != "" {
+				todo.Status = updatedTodo.Status
+			}
+			todos[i] = todo
+			saveTodosToFile()
+			break
+		}
+	}
+
+	// http.StatusNotFound = 404
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "TODO not found"})
+		return
+	}
+	//`gin.H{}` 是一个类似于 `map[string]interface{}` 的类型，其中键是字符串类型，值可以是任意类型的接口。
+	//通过使用 `gin.H{}`，您可以以更简洁的方式构建包含键值对的数据结构，用于生成 JSON 响应
+	c.JSON(http.StatusOK, gin.H{"message": "TODO updated successfully"})
+}
+
+// getTodoByTrackingNumber 根据跟踪号查询 TODO
+func getTodoByTrackingNumber(c *gin.Context) {
+	//`c.Param` 是 Gin 框架中的一个方法，用于获取路由中的参数值。它是通过路由路径中的参数占位符来获取对应的值。
+	//
+	//在 Gin 框架中，可以在路由路径中使用冒号（:）来定义参数占位符。
+	//当请求匹配到带有参数占位符的路由时，Gin 会自动解析并将实际的参数值传递给处理函数
+	//总而言之就是传入具体的数值（在APIfox中） 然后会显现出特定的内容
+	trackingNumber := c.Param("tracking_number")
+
+	for _, todo := range todos {
+		if todo.TrackingNumber == trackingNumber {
+			c.JSON(http.StatusOK, todo)
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "TODO not found"})
+}
+
+// 下面是各种  文件的操作
+
+// loadTodosFromFile 从文件加载 TODO 列表
+func loadTodosFromFile() {
+	file, err := os.Open("a.txt")
+	if err != nil {
+		log.Println("Error opening file:", err)
+		return
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&todos)
+	if err != nil {
+		log.Println("Error decoding todos:", err)
+		return
+	}
+}
+
+// saveTodosToFile 将 TODO 列表保存到文件
+func saveTodosToFile() {
+	file, err := os.Create("a.txt")
+	if err != nil {
+		log.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(todos)
+	if err != nil {
+		log.Println("Error encoding todos:", err)
+		return
+	}
+}
+
