@@ -65,7 +65,7 @@ func send_mail(todo models.Todo) {
 	mail.SetHeader("From", ConfigData.Email.Address)
 	mail.SetHeader("To", user.Email)
 	mail.SetHeader("Subject", "Todo notify")
-	mail.SetBody("text/plaintext", fmt.Sprintln("Your todo ", todo, " is still undone."))
+	mail.SetBody("text/plain", fmt.Sprintln("Your todo ", todo, " is still undone."))
 
 	dail := gomail.NewDialer(ConfigData.Email.SmtpAddress, int(ConfigData.Email.SmtpPort), ConfigData.Email.SmtpUser, ConfigData.Email.Password)
 
