@@ -28,7 +28,8 @@ func Login(ctx *gin.Context) {
 		}
 		if status != models.LoginSuccess {
 			models.Logger.Warning(ret)
-			ctx.JSONP(http.StatusUnauthorized, ret)
+			ctx.Redirect(http.StatusFound, "/login")
+			//ctx.JSONP(http.StatusUnauthorized, ret)
 			return
 		} else {
 			token := models.CreateToken(username)

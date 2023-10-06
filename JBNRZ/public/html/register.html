@@ -1,0 +1,93 @@
+<html lang="zh-CN" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" id="theme-color" content="#161B22">
+    <title>Go Todo - Register</title>
+    <style>
+        .noscript-message {
+            font-size: 20px;
+            text-align: center;
+            padding: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/css/index-67cc1456.css">
+</head>
+
+<body class="light">
+<noscript>
+    <div class="noscript-message"> Sorry, you don't seem to have JavaScript enabled or your browser doesn't support it.
+        <br />This website requires JavaScript to function. Please enable JavaScript in your browser settings to continue. </div>
+</noscript>
+<div id="app" data-v-app="">
+    <div data-v-afd6ecb0="" class="light">
+        <!---->
+        <header data-v-afd6ecb0="" class="d-flex flex-wrap justify-content-center py-3 mb-3 border-bottom">
+            <a data-v-afd6ecb0="" aria-current="page" href="/login" class="active router-link-exact-active d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+                <object data-v-afd6ecb0="" class="bi me-2 ms-4" width="40" height="40" data="/static/icon.png">
+                </object>
+                <span data-v-afd6ecb0="" class="fs-4 title">
+                    Login
+                </span>
+            </a><!---->
+            <ul data-v-afd6ecb0="" class="nav nav-pills"><!----><!----><!---->
+            </ul>
+        </header>
+        <main data-v-afd6ecb0="">
+            <!---->
+            <div data-v-f878e761="" data-v-afd6ecb0="" class="form-container">
+                <div data-v-f878e761="" class="form">
+                    <form data-v-f878e761="">
+                        <h1 data-v-f878e761="" class="h3 mb-3 fw-normal"></h1>
+                        <div data-v-f878e761="" class="form-floating">
+                            <input data-v-f878e761="" id="floatingInput" type="text" class="form-control" placeholder="Username" autocomplete="username" required="">
+                            <label data-v-f878e761="" for="floatingInput">用户名</label>
+                        </div>
+                        <div data-v-f878e761="" class="form-floating mt-3">
+                            <input data-v-f878e761="" id="floatingPassword" type="password" class="form-control" placeholder="Password" autocomplete="current-password" required="">
+                            <label data-v-f878e761="" for="floatingPassword">密码</label>
+                        </div>
+                        <div data-v-f878e761="" class="form-floating mt-3">
+                        </div>
+                        <button data-v-f878e761="" class="w-100 btn btn-primary" onclick="register()">注册</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+    function register() {
+        let username = document.getElementById("floatingInput").value;
+        let password = document.getElementById("floatingPassword").value;
+        if (username && password) {
+            fetch("/register", {
+                method: "POST",
+                body: JSON.stringify({
+                    "username": username,
+                    "password": password
+                }),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json()).then(data => function (data) {
+                console.log(data);
+                if (data["code"] === 0) {
+                    if (data["data"]["username"] === "admin") {
+                        window.location.href = "/admin/home";
+                    } else {
+                        window.location.href = "/user/" + data["data"]["username"] + "/home";
+                    }
+                } else {
+                    alert(data["status"]);
+                }
+            }(data));
+        }
+    }
+</script>
+</body>
+
+</html>

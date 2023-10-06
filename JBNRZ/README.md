@@ -1,5 +1,11 @@
 # Go-Todo
 
+## Demo
+
+[demo](http://test.jbnrz.com.cn)
+
+前端魔法玩不懂，只对接了一部分api
+
 ## API
 
 ### 登录
@@ -11,6 +17,8 @@ method: `POST`
 |:--------:|:------:|:---:|
 | username | string | 用户名 |
 | password | string | 密码  |
+
+默认管理员：admin/admin
 
 ### 注册
 endpoint: `/register`

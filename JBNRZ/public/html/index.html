@@ -1,0 +1,178 @@
+<html lang="zh-CN" dir="ltr">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <style>
+
+        .fa-ul > li {
+            position: relative;
+        }
+
+        @-webkit-keyframes fa-spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fa-spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+    </style>
+    <meta name="theme-color" id="theme-color" content="#5cdd8b">
+    <meta name="description" content="">
+    <title>Go-Todo</title>
+    <style>
+        .noscript-message {
+            font-size: 20px;
+            text-align: center;
+            padding: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/css/index-67cc1456.css">
+    <link rel="icon" href="/static/icon.png" sizes="32x32">
+</head>
+
+<body class="light">
+<noscript>
+    <div class="noscript-message"> Sorry, you don't seem to have JavaScript enabled or your browser doesn't support it.
+        <br />This website requires JavaScript to function. Please enable JavaScript in your browser settings to continue. </div>
+</noscript>
+<div id="app" data-v-app="">
+    <div data-v-3042fc32="" class="container mt-3">
+        <!---->
+        <div data-v-3042fc32="" class="main">
+            <h1 data-v-3042fc32="" class="mb-4 title-flex">
+                <span data-v-3042fc32="" class="logo-wrapper">
+                    <img data-v-3042fc32="" src="/static/icon.png" alt="" class="logo me-2">
+                </span>
+                <span data-v-7d4a7f28="" data-v-3042fc32="" contenteditable="false">Todo List</span>
+            </h1>
+            <div data-v-3042fc32="" class="shadow-box list p-4 overall-status mb-4">
+                <div data-v-3042fc32="">
+                    <div data-v-cebd10be="" class="item" data-draggable="true">
+                        <div data-v-cebd10be="" class="row">
+                            <div data-v-cebd10be="" class="col-9 col-md-8 small-padding">
+                                <div data-v-cebd10be="" class="info">
+                                    <svg data-v-3042fc32="" width="24" height="24" class="svg-inline--fa fa-check-circle fa-w-16 ok" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="check-circle" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                                        <path class="" fill="currentColor" d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628.001z"></path>
+                                    </svg>
+                                    <p data-v-cebd10be="" class="item-name">{[{ .Title }]}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div data-v-3042fc32="" class="alert-heading p-2"></div>
+            <!---->
+            <div data-v-3042fc32="" class="mb-4">
+                <!---->
+                <div data-v-cebd10be="">
+                    <div data-v-cebd10be="" class="mb-5" data-draggable="true">
+                        <h2 data-v-cebd10be="" class="group-title"><!----><!---->
+                            <span data-v-7d4a7f28="" data-v-cebd10be="" contenteditable="false">
+                                Todos
+                                <br>
+                            </span>
+                        </h2>
+                        <div data-v-cebd10be="" class="shadow-box monitor-list mt-4 position-relative">
+                            <!---->
+                            <div data-v-cebd10be="" class="monitor-list">
+                                <div id="file-container">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function getData() {
+        fetch("/user/" + window.location.pathname.split("/")[2] + "/list?from=0&num=1000", {
+            method: "GET",
+            credentials: "include",
+        }).then(response => response.json()).then(data => {
+            data = data["data"]["todos"];
+            console.log(data);
+            if (data.length > 0) {
+                document.getElementById("file-container").innerHTML = "";
+                let div = document.getElementById("file-container");
+                for (let i = 0; i < data.length; i++) {
+                    let todo = {
+                        "Status": function (status) {
+                            if (status) {
+                                return "Done";
+                            }
+                            return "Doing";
+                        }(data[i]["Finished"]),
+                        "Name": data[i]["Username"],
+                        "ItemName": data[i]["ItemName"],
+                        "Detail": data[i]["Detail"],
+                        "EndTime": function (unix) {
+                            return new Date(unix*1000).toLocaleString();
+                        }(data[i]["EndTime"]),
+                        "Color": function (status) {
+                            if (status) {
+                                return "bg-primary-offline";
+                            }
+                            return "bg-primary"
+                        }(data[i]["Finished"])
+                    }
+                    div.insertAdjacentHTML("afterbegin", "<div data-v-cebd10be=\"\" class=\"item\" data-draggable=\"true\">" +
+                        "<div data-v-cebd10be=\"\" class=\"row\">" +
+                        "<div data-v-cebd10be=\"\" class=\"col-9 col-md-3 small-padding\">" +
+                        "<div data-v-cebd10be=\"\" class=\"info\">" +
+                        "<span data-v-cebd10be=\"\" class=\"badge rounded-pill "+todo["Color"]+"\" title=\"Status\">" + todo["Status"] + "</span>" +
+                        "<p data-v-cebd10be=\"\" class=\"item-name\">"+ todo["ItemName"] +"</p><span data-v-cebd10be=\"\" title=\"Setting\"><!----></span></div>" +
+                        "</div>" +
+                        "<div data-v-cebd10be=\"\" class=\"col-9 col-md-9\">" +
+                        "<div data-v-5765fde3=\"\" data-v-cebd10be=\"\" class=\"d-flex justify-content-between\" style=\"width: 100%;\">" +
+                        "<div>"+todo["Name"]+"</div>" +
+                        "<div>"+todo["EndTime"]+"</div>" +
+                        "<div>"+todo["Detail"]+"</div>" +
+                        "<div>" +
+                        "</div>" +
+                        "</div>" +
+                        "</div>")
+                }
+            }
+        })
+    }
+    getData();
+    function logout() {
+        let url = "/user/" + window.location.pathname.split("/")[2] + "/logout";
+        fetch(url, {
+            method: "GET",
+            credentials: "include",
+        })
+    }
+</script>
+<footer data-v-3042fc32="" class="mt-5 mb-4" style="position: relative; bottom: auto; width: 100%">
+    <p>
+        <a data-v-3042fc32="" target="_blank" rel="noopener noreferrer" href={[{ .Logout }]}>Logout</a>
+    </p>
+
+    <p data-v-3042fc32="">Powered by:
+        <a data-v-3042fc32="" target="_blank" rel="noopener noreferrer" href="https://jbnrz.com.cn" style="text-decoration: none">JBNRZ</a>
+    </p>
+</footer>
+</body>
+</html>

@@ -3,6 +3,7 @@ package routers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 	"todo/models"
 )
 
@@ -17,6 +18,42 @@ type AdminAddTodoForm struct {
 type AdminDelTodoForm struct {
 	ItemName string `form:"name" binding:"required"`
 	Username string `form:"username" binding:"required"`
+}
+
+func AdminHome(ctx *gin.Context) {
+	var (
+		username string
+		ret      map[string]interface{}
+	)
+	token, ok := models.Tokens.Load("admin")
+	gcToken, err := ctx.Cookie("todo-token")
+	status := false
+	if ok || err == nil || token == gcToken {
+		status = true
+		username = "admin"
+	}
+	if status {
+		ret = gin.H{
+			"status": "success",
+			"code":   0,
+			"time":   time.Now(),
+			"data": gin.H{
+				"username": username,
+				"token":    token,
+			},
+		}
+		models.Logger.Info(ret)
+		//ctx.JSONP(http.StatusOK, ret)
+		ctx.HTML(http.StatusOK, "index.html", gin.H{
+			"Title": username,
+		})
+		return
+	} else {
+		models.Logger.Warning(StatusUnauthorized)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, StatusUnauthorized)
+		return
+	}
 }
 
 func ListAll(ctx *gin.Context) {

@@ -79,11 +79,16 @@ func HomePage(ctx *gin.Context) {
 			},
 		}
 		models.Logger.Info(ret)
-		ctx.JSONP(http.StatusOK, ret)
+		//ctx.JSONP(http.StatusOK, ret)
+		ctx.HTML(http.StatusOK, "index.html", gin.H{
+			"Title":  username,
+			"Logout": "/user/" + username + "/logout",
+		})
 		return
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -120,7 +125,8 @@ func Reset(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -139,11 +145,13 @@ func Logout(ctx *gin.Context) {
 			},
 		}
 		models.Logger.Info(ret)
-		ctx.JSONP(http.StatusOK, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusOK, ret)
 		return
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -183,7 +191,8 @@ func AddTodo(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -220,7 +229,8 @@ func ListTodo(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -258,7 +268,8 @@ func DelTodo(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -300,7 +311,8 @@ func GetTodo(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -342,7 +354,8 @@ func ChangeTodo(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }
@@ -380,7 +393,8 @@ func SetEmail(ctx *gin.Context) {
 		}
 	} else {
 		models.Logger.Warning(ret)
-		ctx.JSONP(http.StatusUnauthorized, ret)
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, ret)
 		return
 	}
 }

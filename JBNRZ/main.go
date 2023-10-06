@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
+	models.InitLogger()
 	models.InitConfig()
 	models.InitDB()
 	models.InitAdmin()

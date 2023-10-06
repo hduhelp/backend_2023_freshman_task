@@ -10,11 +10,12 @@ func Auth(ctx *gin.Context) {
 	token, err := ctx.Cookie("todo-token")
 	if err != nil {
 		ctx.Abort()
-		ctx.JSONP(http.StatusUnauthorized, gin.H{
-			"status": "Unauthorized",
-			"code":   401,
-			"data":   nil,
-		})
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, gin.H{
+		//	"status": "Unauthorized",
+		//	"code":   401,
+		//	"data":   nil,
+		//})
 	}
 	var exists bool
 	var username string
@@ -28,11 +29,13 @@ func Auth(ctx *gin.Context) {
 	})
 	if exists != true {
 		ctx.Abort()
-		ctx.JSONP(http.StatusUnauthorized, gin.H{
-			"status": "Unauthorized",
-			"code":   401,
-			"data":   nil,
-		})
+
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, gin.H{
+		//	"status": "Unauthorized",
+		//	"code":   401,
+		//	"data":   nil,
+		//})
 	}
 	ctx.Set("Username", username)
 	ctx.Next()

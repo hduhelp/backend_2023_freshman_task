@@ -6,13 +6,16 @@ import (
 )
 
 func RootPage(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "index.html")
+	//ctx.HTML(http.StatusOK, "index.html", gin.H{
+	//	"Title": "User",
+	//})
+	ctx.Redirect(http.StatusFound, "login")
 }
 
 func LoginPage(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "login.html")
+	ctx.HTML(http.StatusOK, "login.html", nil)
 }
 
 func RegisterPage(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "register.html")
+	ctx.HTML(http.StatusOK, "register.html", nil)
 }

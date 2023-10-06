@@ -11,11 +11,12 @@ func Admin(ctx *gin.Context) {
 	token, err := ctx.Cookie("todo-token")
 	if err != nil {
 		ctx.Abort()
-		ctx.JSONP(http.StatusUnauthorized, gin.H{
-			"status": "Unauthorized",
-			"code":   401,
-			"data":   nil,
-		})
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, gin.H{
+		//	"status": "Unauthorized",
+		//	"code":   401,
+		//	"data":   nil,
+		//})
 	}
 	var exists bool
 	var username string
@@ -29,11 +30,12 @@ func Admin(ctx *gin.Context) {
 	})
 	if exists != true {
 		ctx.Abort()
-		ctx.JSONP(http.StatusUnauthorized, gin.H{
-			"status": "Unauthorized",
-			"code":   401,
-			"data":   nil,
-		})
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, gin.H{
+		//	"status": "Unauthorized",
+		//	"code":   401,
+		//	"data":   nil,
+		//})
 		return
 	}
 	status, user := models.GetUserByName(username)
@@ -54,10 +56,11 @@ func Admin(ctx *gin.Context) {
 		ctx.Next()
 	} else {
 		ctx.Abort()
-		ctx.JSONP(http.StatusUnauthorized, gin.H{
-			"status": "Unauthorized",
-			"code":   401,
-			"data":   nil,
-		})
+		ctx.Redirect(http.StatusFound, "/login")
+		//ctx.JSONP(http.StatusUnauthorized, gin.H{
+		//	"status": "Unauthorized",
+		//	"code":   401,
+		//	"data":   nil,
+		//})
 	}
 }

@@ -7,6 +7,9 @@ import (
 
 func InitRouters() (router *gin.Engine) {
 	router = gin.Default()
+	router.Delims("{[{", "}]}")
+	router.LoadHTMLGlob("./public/html/*")
+	router.Static("/static", "./public/static")
 
 	defaultRouters := router.Group("/")
 	defaultRouters.GET("/", RootPage)
@@ -27,6 +30,7 @@ func InitRouters() (router *gin.Engine) {
 	userRouters.POST("/:username/email", SetEmail)
 
 	adminRouters := router.Group("/admin", middlewave.Admin)
+	adminRouters.GET("/home", AdminHome)
 	adminRouters.GET("/list", ListAll)
 	adminRouters.POST("/add", AdminAddTodo)
 	adminRouters.POST("/delete", AdminDelTodo)
