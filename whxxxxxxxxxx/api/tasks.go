@@ -20,3 +20,40 @@ func CreateTask(c *gin.Context) {
 		c.JSON(400, err)
 	}
 }
+
+func GetOneTask(c *gin.Context) {
+	var getOneTask service.GetOneTaskService
+	if err := c.ShouldBind(&getOneTask); err == nil {
+		res := getOneTask.GetOne(c.Param("id"))
+		c.JSON(200, res)
+
+	} else {
+		logging.Error(err)
+		c.JSON(400, err)
+	}
+}
+
+func GetAllTask(c *gin.Context) {
+	var getAllTask service.GetAllTaskService
+	claim, _ := utils.ParseToken(c.GetHeader("Authorization"))
+	if err := c.ShouldBind(&getAllTask); err == nil {
+		res := getAllTask.GetAll(claim.Id)
+		c.JSON(200, res)
+
+	} else {
+		logging.Error(err)
+		c.JSON(400, err)
+	}
+}
+
+func UpdateTask(c *gin.Context) {
+	var updateTask service.UpdateTaskService
+	if err := c.ShouldBind(&updateTask); err == nil {
+		res := updateTask.Update(c.Param("id"))
+		c.JSON(200, res)
+
+	} else {
+		logging.Error(err)
+		c.JSON(400, err)
+	}
+}

@@ -27,6 +27,10 @@ func NewRouter() *gin.Engine {
 	authed.Use(middleware.JWT())
 	{
 		authed.POST("/create", api.CreateTask)
+		authed.GET("/getone/:id", api.GetOneTask)
+		authed.GET("/getall", api.GetAllTask)
+		authed.PUT("/update/:id", api.UpdateTask)
+		//authed.DELETE("/delete/:id", api.DeleteTask)
 	}
 	return r
 }

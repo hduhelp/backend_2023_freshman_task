@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type Task struct {
 	gorm.Model
-	User      User   `gorm:"ForeignKey:Uid;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	User      User   `gorm:"foreignKey:Uid;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Uid       uint   `gorm:"not null"`
 	Title     string `gorm:"index;not null"` //查询索引
 	Status    int    `gorm:"default:0"`      //0未完成，1完成

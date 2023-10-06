@@ -6,6 +6,8 @@ func migration() {
 	// 自动迁移模式
 	err := DB.AutoMigrate(&User{})
 	err2 := DB.AutoMigrate(&Task{})
+
+	//关联两数据表
 	if err != nil {
 		fmt.Println("用户数据表迁移失败")
 	}
