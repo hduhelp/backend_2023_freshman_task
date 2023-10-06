@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"fmt"
 	"whxxxxxxxxxx/api"
+	"whxxxxxxxxxx/middleware"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -13,11 +15,18 @@ func NewRouter() *gin.Engine {
 
 	store := cookie.NewStore([]byte("something-very-secret"))
 	r.Use(sessions.Sessions("mysession", store))
-	v1 := r.Group("api/user/v1")
+	v1 := r.Group("api/user/v2")
 	{
 		//用户操作
-		v1.POST("/user/register", api.UserRegister)
-		v1.POST("/user/login", api.UserLogin)
+		fmt.Println("路由1")
+		v1.POST("/register", api.UserRegister)
+		v1.POST("/login", api.UserLogin)
+
+	}
+	authed := r.Group("api/task/v2")
+	authed.Use(middleware.JWT())
+	{
+		authed.POST("/create", api.CreateTask)
 	}
 	return r
 }

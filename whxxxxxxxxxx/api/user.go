@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"whxxxxxxxxxx/service"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,7 @@ import (
 
 func UserRegister(c *gin.Context) {
 	var userRegister service.UserService
+	fmt.Println("路由2")
 	if err := c.ShouldBind(&userRegister); err == nil {
 		res := userRegister.Register()
 		c.JSON(200, res)
