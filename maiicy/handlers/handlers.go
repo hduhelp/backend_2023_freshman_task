@@ -3,6 +3,7 @@ package handlers
 import (
 	"login-system/db_handle"
 	"login-system/utils"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -208,6 +209,27 @@ func GetAllTodoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "获取成功", "data": todos})
+}
+
+func GetIDTodoHandler(c *gin.Context) {
+	todoParam := c.Param("id")
+	todoID, err := strconv.Atoi(todoParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID格式不正确"})
+		return
+	}
+	tokenString := c.GetHeader("Authorization")
+	user, err := utils.ParseJWT(tokenString)
+	if err != nil {
+		return
+	}
+	todo, err := db_handle.FindTodoByID(todoID)
+	if todo.UserID != user.ID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不存在对应的任务"})
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{"message": "获取成功", "data": todo})
+
 }
 
 func GetDateTodoHandler(c *gin.Context) {
