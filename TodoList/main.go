@@ -77,110 +77,102 @@ func add(todo Todo) (Index int, err error) {
 		log.Fatal(err.Error())
 	}
 	i := 1
+	index := 1
 	for rows.Next() {
 		var todo Todo
 		//遍历表中所有行的信息
 		rows.Scan(&todo.ID, &todo.Content, &todo.Done)
-		i++
+		i = todo.ID
+		index++
 	}
-	rs, err := stmt.Exec(i, todo.Content, todo.Done)
+	rs, err := stmt.Exec(i+1, todo.Content, todo.Done)
 	if err != nil {
 		return
 	}
 	//	插入index
-	index, err := rs.LastInsertId()
+	_, err = rs.LastInsertId()
 	if err != nil {
 		log.Println(err)
 	}
-	Index = int(index)
+	Index = index
 	defer stmt.Close()
 	return
 }
 
 // 获取所有todo
-func getAll() (todos []Todo, err error) {
-	db, _ := connectToDatabase() // 与 MySQL 数据库建立连接
+func getAll() ([]Todo, error) {
+	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
 	if err != nil {
-		log.Fatal(err.Error())
+		return nil, err
 	}
 	defer db.Close()
 
 	rows, err := db.Query("SELECT id, content, done FROM todolist")
 	if err != nil {
-		log.Fatal(err.Error())
+		return nil, err
 	}
+	defer rows.Close()
 
+	var todos []Todo
 	for rows.Next() {
 		var todo Todo
-		//遍历表中所有行的信息
-		rows.Scan(&todo.ID, &todo.Content, &todo.Done)
-		//将user添加到users中
+		err := rows.Scan(&todo.ID, &todo.Content, &todo.Done)
+		if err != nil {
+			return nil, err
+		}
 		todos = append(todos, todo)
 	}
-	//最后关闭连接
-	defer rows.Close()
-	return
+
+	return todos, nil
 }
 
 // 删除todo
-func del(todos []Todo, index int) (todoss []Todo, err error) {
-	db, _ := connectToDatabase() // 与 MySQL 数据库建立连接
+func del(todos []Todo, index int) ([]Todo, error) {
+	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
 	if err != nil {
-		log.Fatal(err.Error())
+		return nil, err
 	}
 	defer db.Close()
+
 	stmt, err := db.Prepare("DELETE FROM todolist WHERE id=?")
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
-	stmt.Exec(todos[index-1].ID)
-	todoss = append(todos[:index-1], todos[index:]...)
 	defer stmt.Close()
-	return
+
+	_, err = stmt.Exec(todos[index-1].ID)
+	if err != nil {
+		return nil, err
+	}
+
+	todoss := append(todos[:index-1], todos[index:]...)
+	return todoss, nil
 }
 
 // 修改todo
-func update(todos []Todo, todo Todo, index int) (todoss []Todo, err error) {
-	db, _ := connectToDatabase() // 与 MySQL 数据库建立连接
+func update(todos []Todo, todo Todo, index int) ([]Todo, error) {
+	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
 	if err != nil {
-		log.Fatal(err.Error())
+		return nil, err
 	}
 	defer db.Close()
+
 	stmt, err := db.Prepare("UPDATE todolist SET content=?, done=? WHERE id=?")
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
-	stmt.Exec(todo.Content, todo.Done, todos[index-1].ID)
-	todoss = todos
+	defer stmt.Close()
+
+	_, err = stmt.Exec(todo.Content, todo.Done, todos[index-1].ID)
+	if err != nil {
+		return nil, err
+	}
+
+	todoss := todos
 	todoss[index-1].Done = todo.Done
 	todoss[index-1].Content = todo.Content
-	defer stmt.Close()
-	return
-}
 
-// JWTHandler jwt拦截器
-func JWTHandler() gin.HandlerFunc {
-	return func(context *gin.Context) {
-
-		//引入jwt实现登录后的会话记录,登录会话发生登录完成之后
-		//header获取token
-		session := sessions.Default(context)
-		token := session.Get("username").(string)
-		if token == "" {
-			context.String(302, "请求未携带token无法访问!")
-			context.Abort()
-		}
-		//解析token
-		claims, err := utils.ParserUserToken(token)
-		if claims == nil || err != nil {
-			context.String(401, "未携带有效token或已过期")
-			context.Abort()
-		} else {
-			//context.Set("user", claims.Username)
-			context.Next()
-
-		}
-	}
+	return todoss, nil
 }
 
 func main() {
@@ -275,14 +267,13 @@ func main() {
 		result = gin.H{
 			"code":    200,
 			"message": "登陆成功",
-			"data":    user,
 			"token":   token,
 		}
 		c.JSON(http.StatusOK, result)
 	})
 
 	// 添加todo
-	r.POST("/todo", JWTHandler(), func(c *gin.Context) {
+	r.POST("/todo", utils.JWTHandler(), func(c *gin.Context) {
 		var todo Todo
 		c.BindJSON(&todo)
 		index, err := add(todo)
@@ -296,7 +287,7 @@ func main() {
 	})
 
 	// 删除todo
-	r.DELETE("/todo/:index", JWTHandler(), func(c *gin.Context) {
+	r.DELETE("/todo/:index", utils.JWTHandler(), func(c *gin.Context) {
 		index, _ := strconv.Atoi(c.Param("index"))
 		todos, _ := getAll()
 		if index-1 >= len(todos) {
@@ -310,11 +301,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		c.JSON(http.StatusOK, todos)
+		c.JSON(http.StatusOK, gin.H{
+			"message": "success",
+		})
 	})
 
 	// 修改todo
-	r.PUT("/todo/:index", JWTHandler(), func(c *gin.Context) {
+	r.PUT("/todo/:index", utils.JWTHandler(), func(c *gin.Context) {
 		index, _ := strconv.Atoi(c.Param("index"))
 		var todo Todo
 		c.BindJSON(&todo)
@@ -330,11 +323,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		c.JSON(http.StatusOK, todos)
+		c.JSON(http.StatusOK, gin.H{
+			"message": "success",
+		})
 	})
 
 	// 获取todo
-	r.GET("/todo", JWTHandler(), func(c *gin.Context) {
+	r.GET("/todo", utils.JWTHandler(), func(c *gin.Context) {
 		todos, err := getAll()
 		if err != nil {
 			log.Fatal(err)
@@ -343,7 +338,7 @@ func main() {
 	})
 
 	// 查询todo
-	r.GET("/todo/:index", JWTHandler(), func(c *gin.Context) {
+	r.GET("/todo/:index", utils.JWTHandler(), func(c *gin.Context) {
 		index, _ := strconv.Atoi(c.Param("index"))
 		todos, err := getAll()
 		if err != nil {
