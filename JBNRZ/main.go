@@ -1,18 +1,9 @@
 package main
 
 import (
-	"todo/models"
-	"todo/routers"
+	"fmt"
 )
 
 func main() {
-	models.InitLogger()
-	models.InitConfig()
-	models.InitDB()
-	models.InitAdmin()
-	models.InitCron().Start()
-	router := routers.InitRouters()
-	if err := router.Run(":" + models.Env.GetString("server.port")); err != nil {
-		models.Logger.Fatalln(err)
-	}
+	fmt.Println("https://git.0rays.club/JBNRZ/Go-Todo")
 }

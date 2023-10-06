@@ -1,9 +1,0 @@
-server:
-  port: 8000
-db: data.db
-salt: -S@ltPaThlJbnRz
-email:
-  sender:
-  server:
-  port: 25
-  secret:
