@@ -16,7 +16,7 @@ type User struct {
 }
 
 var (
-	SecretKey = []byte("114514") // 用于签名和验证 JWT 的密钥
+	SecretKey = []byte("") // 用于签名和验证 JWT 的密钥
 )
 
 func CalculateMD5(input string) (string, error) {
