@@ -136,3 +136,26 @@ func NewToken(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, token)
 }
+
+func DeleteToken(c *gin.Context) {
+	var token models.Token
+	var origin_token = c.Param("token")
+	var data DeleteTodoData
+
+	if err := c.BindJSON(&data); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+
+	if err := models.Db.First(&token, models.Token{ Token: origin_token }).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": "Token not found"})
+		return
+	}
+
+	if err := models.Db.Delete(&token).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, token)
+}

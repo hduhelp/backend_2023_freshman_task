@@ -33,6 +33,7 @@ func main() {
 	r.PUT("/user/:id", controller.UpdateUser)
 
 	r.POST("/token", controller.NewToken)
+	r.DELETE("/token/:token", controller.DeleteToken)
 
 	r.Run()
 }
