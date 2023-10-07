@@ -4,6 +4,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/viper"
 	"time"
 )
@@ -11,7 +12,7 @@ import (
 // MyPayload 定义负载继承jwt的标准负载
 type MyPayload struct {
 	Username string
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // 定义secret签名
@@ -22,13 +23,11 @@ func MakeUserToken(username string) string {
 	//传入用户信息生成负载实例
 	payload := MyPayload{
 		Username: username,
-		StandardClaims: jwt.StandardClaims{
-			NotBefore: time.Now().Unix(),
-			IssuedAt:  time.Now().Unix(),
-			ExpiresAt: time.Now().Unix() + 3600,
-		},
-	}
-
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * time.Hour * time.Duration(1))), // 过期时间3小时
+			IssuedAt:  jwt.NewNumericDate(time.Now()),                                       // 签发时间
+			NotBefore: jwt.NewNumericDate(time.Now()),                                       // 生效时间
+		}}
 	//生成加密Signature
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString(signatureKey)
 	if err != nil {
@@ -56,7 +55,6 @@ func ParserUserToken(token string) (*MyPayload, error) {
 // JWTHandler jwt拦截器
 func JWTHandler() gin.HandlerFunc {
 	return func(context *gin.Context) {
-
 		//引入jwt实现登录后的会话记录,登录会话发生登录完成之后
 		//header获取token
 		session := sessions.Default(context)
@@ -67,14 +65,17 @@ func JWTHandler() gin.HandlerFunc {
 		} else {
 			token := tokenValue.(string)
 			//解析token
+			if token == "" {
+				context.String(302, "？你的token呢？")
+				context.Abort()
+			}
 			claims, err := ParserUserToken(token)
 			if claims == nil || err != nil {
 				context.String(401, "未携带有效token或已过期")
 				context.Abort()
 			} else {
-				//context.Set("user", claims.Username)
+				context.Set("user", claims.Username)
 				context.Next()
-
 			}
 		}
 	}

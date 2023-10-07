@@ -1,0 +1,9 @@
+database:
+  mysql:
+    username: "root"
+    password: "lyr20041207"
+    host: "localhost"
+    port: 3316
+    dbname: "help_test"
+secret:
+  signatureKey: "D3ic1de"

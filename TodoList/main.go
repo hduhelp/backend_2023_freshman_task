@@ -1,31 +1,22 @@
 package main
 
 import (
-	"TodoList/config"
+	"TodoList/controller"
 	"TodoList/utils"
-	"database/sql"
 	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-type Database struct {
-	Username string
-	Password string
-	Host     string
-	Port     int
-	DBname   string
-}
-
 type Todo struct {
 	ID      int    `json:"id"`
+	User    string `json:"user"`
 	Content string `json:"content"`
 	Done    string `json:"done"`
 }
@@ -38,145 +29,8 @@ type User struct {
 	Password string `json:"password" form:"password"`
 }
 
-// 连接数据库
-func connectToDatabase() (*sql.DB, error) {
-	config.InitConfig()
-	ms := Database{
-		Username: viper.GetString("database.mysql.username"),
-		Password: viper.GetString("database.mysql.password"),
-		Host:     viper.GetString("database.mysql.host"),
-		Port:     viper.GetInt("database.mysql.port"),
-		DBname:   viper.GetString("database.mysql.dbname"),
-	}
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", ms.Username, ms.Password, ms.Host, ms.Port, ms.DBname)
-	db, err := sql.Open("mysql", dataSourceName) // 打开mysql数据库
-	if err != nil {
-		return nil, err
-	}
-	err = db.Ping() // 检查连接是否建立，以确保连接存活
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
-// 添加todo
-func add(todo Todo) (Index int, err error) {
-	db, _ := connectToDatabase() // 与 MySQL 数据库建立连接
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	defer db.Close()
-	stmt, err := db.Prepare("INSERT INTO todolist(id, content, done) VALUES (?, ?, ?)")
-	if err != nil {
-		return
-	}
-	rows, err := db.Query("SELECT id, content, done FROM todolist")
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	i := 1
-	index := 1
-	for rows.Next() {
-		var todo Todo
-		//遍历表中所有行的信息
-		rows.Scan(&todo.ID, &todo.Content, &todo.Done)
-		i = todo.ID
-		index++
-	}
-	rs, err := stmt.Exec(i+1, todo.Content, todo.Done)
-	if err != nil {
-		return
-	}
-	//	插入index
-	_, err = rs.LastInsertId()
-	if err != nil {
-		log.Println(err)
-	}
-	Index = index
-	defer stmt.Close()
-	return
-}
-
-// 获取所有todo
-func getAll() ([]Todo, error) {
-	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	rows, err := db.Query("SELECT id, content, done FROM todolist")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var todos []Todo
-	for rows.Next() {
-		var todo Todo
-		err := rows.Scan(&todo.ID, &todo.Content, &todo.Done)
-		if err != nil {
-			return nil, err
-		}
-		todos = append(todos, todo)
-	}
-
-	return todos, nil
-}
-
-// 删除todo
-func del(todos []Todo, index int) ([]Todo, error) {
-	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	stmt, err := db.Prepare("DELETE FROM todolist WHERE id=?")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(todos[index-1].ID)
-	if err != nil {
-		return nil, err
-	}
-
-	todoss := append(todos[:index-1], todos[index:]...)
-	return todoss, nil
-}
-
-// 修改todo
-func update(todos []Todo, todo Todo, index int) ([]Todo, error) {
-	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	stmt, err := db.Prepare("UPDATE todolist SET content=?, done=? WHERE id=?")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(todo.Content, todo.Done, todos[index-1].ID)
-	if err != nil {
-		return nil, err
-	}
-
-	todoss := todos
-	todoss[index-1].Done = todo.Done
-	todoss[index-1].Content = todo.Content
-
-	return todoss, nil
-}
-
 func main() {
-	db, err := connectToDatabase() // 与 MySQL 数据库建立连接
+	db, err := controller.ConnectToDatabase() // 与 MySQL 数据库建立连接
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -274,13 +128,15 @@ func main() {
 
 	// 添加todo
 	r.POST("/todo", utils.JWTHandler(), func(c *gin.Context) {
+		user := c.GetString("user")
 		var todo Todo
 		c.BindJSON(&todo)
-		index, err := add(todo)
+		index, err := controller.Add(user, controller.Todo(todo))
 		if err != nil {
 			log.Fatal(err)
 		}
 		c.JSON(200, gin.H{
+			"code":   200,
 			"index":  index,
 			"status": "success",
 		})
@@ -289,7 +145,8 @@ func main() {
 	// 删除todo
 	r.DELETE("/todo/:index", utils.JWTHandler(), func(c *gin.Context) {
 		index, _ := strconv.Atoi(c.Param("index"))
-		todos, _ := getAll()
+		user := c.GetString("user")
+		todos, _ := controller.GetAll(user)
 		if index-1 >= len(todos) {
 			c.JSON(422, gin.H{
 				"code":    422,
@@ -297,11 +154,12 @@ func main() {
 			})
 			return
 		}
-		todos, err = del(todos, index)
+		todos, err = controller.Del(todos, index)
 		if err != nil {
 			log.Fatal(err)
 		}
 		c.JSON(http.StatusOK, gin.H{
+			"code":    "200",
 			"message": "success",
 		})
 	})
@@ -309,9 +167,10 @@ func main() {
 	// 修改todo
 	r.PUT("/todo/:index", utils.JWTHandler(), func(c *gin.Context) {
 		index, _ := strconv.Atoi(c.Param("index"))
+		user := c.GetString("user")
 		var todo Todo
 		c.BindJSON(&todo)
-		todos, _ := getAll()
+		todos, _ := controller.GetAll(user)
 		if index-1 >= len(todos) {
 			c.JSON(422, gin.H{
 				"code":    422,
@@ -319,28 +178,32 @@ func main() {
 			})
 			return
 		}
-		todos, err = update(todos, todo, index)
+		todos, err = controller.Update(todos, controller.Todo(todo), index)
 		if err != nil {
 			log.Fatal(err)
 		}
 		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
 			"message": "success",
 		})
 	})
 
 	// 获取todo
 	r.GET("/todo", utils.JWTHandler(), func(c *gin.Context) {
-		todos, err := getAll()
+		user := c.GetString("user")
+		todos, err := controller.GetAll(user)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Sprintf(user)
 		c.JSON(200, todos)
 	})
 
 	// 查询todo
 	r.GET("/todo/:index", utils.JWTHandler(), func(c *gin.Context) {
 		index, _ := strconv.Atoi(c.Param("index"))
-		todos, err := getAll()
+		user := c.GetString("user")
+		todos, err := controller.GetAll(user)
 		if err != nil {
 			log.Fatal(err)
 		}
