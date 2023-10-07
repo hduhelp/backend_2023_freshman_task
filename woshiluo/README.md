@@ -95,7 +95,7 @@ PUT /user/:id
 
 认证 Token 属于 ID 为 `id` 的用户 ，并更新该用户的用户信息。
 
-POST /Token
+POST /token
 
 ```
 {
@@ -106,6 +106,10 @@ POST /Token
 认证，并返回一个新的属于认证用户的 Token。
 
 Token 会在最后一次使用后 24h 后被删除。
+
+DELETE /token/:token
+
+删除指定的 Token。
 
 ### Todo
 
