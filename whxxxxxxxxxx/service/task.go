@@ -21,6 +21,15 @@ type UpdateTaskService struct {
 type GetOneTaskService struct {
 }
 
+type DeleteTaskService struct {
+}
+
+type SearchTaskService struct {
+	Info     string `json:"info" form:"info"`
+	PageNum  int    `json:"page_num" form:"page_num"`
+	PageSize int    `json:"page_size" form:"page_size"`
+}
+
 type GetAllTaskService struct {
 	//分页功能
 	PageNum  int `json:"page_num" form:"page_num"`
@@ -121,5 +130,44 @@ func (service *UpdateTaskService) Update(tid string) serializer.Response {
 		Status: code,
 		Msg:    "更新对应task成功",
 		Data:   serializer.BuildTask(task),
+	}
+}
+
+func (service *SearchTaskService) Search(uid uint) serializer.Response {
+	var tasks []model.Task
+	var count int64
+	count = 0
+	if service.PageNum == 0 {
+		service.PageNum = 1
+	}
+	if service.PageSize == 0 {
+		service.PageSize = 10
+	}
+	model.DB.Model(&model.Task{}).Preload("User").Where("uid=?", uid).Where("title LIKE ? OR content LIKE ?", "%"+service.Info+"%", "%"+service.Info+"%").Count(&count).Limit(service.PageSize).Offset((service.PageNum - 1) * service.PageSize).Find(&tasks)
+	return serializer.BuildListResponse(serializer.BuildTasks(tasks), uint(count))
+}
+
+func (service *DeleteTaskService) Delete(tid string) serializer.Response {
+	var task model.Task
+	code := 200
+	err := model.DB.First(&task, tid).Error
+	if err != nil {
+		code = 500
+		return serializer.Response{
+			Status: code,
+			Msg:    "删除时获取对应task失败",
+		}
+	}
+	err = model.DB.Delete(&task).Error
+	if err != nil {
+		code = 500
+		return serializer.Response{
+			Status: code,
+			Msg:    "删除对应task失败",
+		}
+	}
+	return serializer.Response{
+		Status: code,
+		Msg:    "删除对应task成功",
 	}
 }

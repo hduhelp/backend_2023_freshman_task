@@ -30,7 +30,8 @@ func NewRouter() *gin.Engine {
 		authed.GET("/getone/:id", api.GetOneTask)
 		authed.GET("/getall", api.GetAllTask)
 		authed.PUT("/update/:id", api.UpdateTask)
-		//authed.DELETE("/delete/:id", api.DeleteTask)
+		authed.POST("/search", api.SearchTask)
+		authed.DELETE("/delete/:id", api.DeleteTask)
 	}
 	return r
 }
