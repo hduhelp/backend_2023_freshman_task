@@ -10,12 +10,14 @@ type CreateTaskService struct {
 	Title   string `json:"title" form:"title"`
 	Content string `json:"content" form:"content"`
 	Status  int    `json:"status" form:"status"` //0未完成，1完成
+	EndTime int64  `json:"end_time" form:"end_time"`
 }
 
 type UpdateTaskService struct {
 	Title   string `json:"title" form:"title"`
 	Content string `json:"content" form:"content"`
 	Status  int    `json:"status" form:"status"` //0未完成，1完成
+	EndTime int64  `json:"end_time" form:"end_time"`
 }
 
 type GetOneTaskService struct {
@@ -47,7 +49,7 @@ func (service *CreateTaskService) Create(id uint) serializer.Response {
 		Status:    0,
 		Content:   service.Content,
 		StartTime: time.Now().Unix(),
-		EndTime:   0,
+		EndTime:   service.EndTime,
 	}
 	err := model.DB.Create(&task).Error
 	if err != nil {
@@ -64,15 +66,15 @@ func (service *CreateTaskService) Create(id uint) serializer.Response {
 	}
 }
 
-func (service *GetOneTaskService) GetOne(tid string) serializer.Response {
+func (service *GetOneTaskService) GetOne(tid string, uid uint) serializer.Response {
 	var task model.Task
 	code := 200
-	err := model.DB.First(&task, tid).Error
+	err := model.DB.Preload("User").Where("uid=?", uid).First(&task, tid).Error
 	if err != nil {
 		code = 500
 		return serializer.Response{
 			Status: code,
-			Msg:    "获取对应task失败",
+			Msg:    "获取对应task失败或者权限不足",
 		}
 	}
 	return serializer.Response{
@@ -104,20 +106,21 @@ func (service *GetAllTaskService) GetAll(uid uint) serializer.Response {
 	return serializer.BuildListResponse(serializer.BuildTasks(tasks), uint(count))
 }
 
-func (service *UpdateTaskService) Update(tid string) serializer.Response {
+func (service *UpdateTaskService) Update(tid string, uid uint) serializer.Response {
 	var task model.Task
 	code := 200
-	err := model.DB.First(&task, tid).Error
+	err := model.DB.Preload("User").Where("uid=?", uid).First(&task, tid).Error
 	if err != nil {
 		code = 500
 		return serializer.Response{
 			Status: code,
-			Msg:    "更新时获取对应task失败",
+			Msg:    "更新时获取对应task失败或者权限不足",
 		}
 	}
 	task.Title = service.Title
 	task.Content = service.Content
 	task.Status = service.Status
+	task.EndTime = service.EndTime
 	err = model.DB.Save(&task).Error
 	if err != nil {
 		code = 500
@@ -147,15 +150,15 @@ func (service *SearchTaskService) Search(uid uint) serializer.Response {
 	return serializer.BuildListResponse(serializer.BuildTasks(tasks), uint(count))
 }
 
-func (service *DeleteTaskService) Delete(tid string) serializer.Response {
+func (service *DeleteTaskService) Delete(tid string, uid uint) serializer.Response {
 	var task model.Task
 	code := 200
-	err := model.DB.First(&task, tid).Error
+	err := model.DB.Preload("User").Where("uid=?", uid).First(&task, tid).Error
 	if err != nil {
 		code = 500
 		return serializer.Response{
 			Status: code,
-			Msg:    "删除时获取对应task失败",
+			Msg:    "删除时获取对应task失败或者权限不足",
 		}
 	}
 	err = model.DB.Delete(&task).Error

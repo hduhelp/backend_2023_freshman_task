@@ -23,8 +23,9 @@ func CreateTask(c *gin.Context) {
 
 func GetOneTask(c *gin.Context) {
 	var getOneTask service.GetOneTaskService
+	claim, _ := utils.ParseToken(c.GetHeader("Authorization"))
 	if err := c.ShouldBind(&getOneTask); err == nil {
-		res := getOneTask.GetOne(c.Param("id"))
+		res := getOneTask.GetOne(c.Param("id"), claim.Id)
 		c.JSON(200, res)
 
 	} else {
@@ -48,8 +49,9 @@ func GetAllTask(c *gin.Context) {
 
 func UpdateTask(c *gin.Context) {
 	var updateTask service.UpdateTaskService
+	claim, _ := utils.ParseToken(c.GetHeader("Authorization"))
 	if err := c.ShouldBind(&updateTask); err == nil {
-		res := updateTask.Update(c.Param("id"))
+		res := updateTask.Update(c.Param("id"), claim.Id)
 		c.JSON(200, res)
 
 	} else {
@@ -73,8 +75,9 @@ func SearchTask(c *gin.Context) {
 
 func DeleteTask(c *gin.Context) {
 	var deleteTask service.DeleteTaskService
+	claim, _ := utils.ParseToken(c.GetHeader("Authorization"))
 	if err := c.ShouldBind(&deleteTask); err == nil {
-		res := deleteTask.Delete(c.Param("id"))
+		res := deleteTask.Delete(c.Param("id"), claim.Id)
 		c.JSON(200, res)
 
 	} else {
