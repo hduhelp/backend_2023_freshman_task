@@ -123,16 +123,26 @@ func main() {
 
 		index, _ := strconv.Atoi(c.Param("index"))
 		c.BindJSON(&todo)
+
 		if wetherlogin(todo) == true {
 			db, _ = getDBConnection("todolist")
 
 			db.Model(&todo).Where("index_id =? AND username =?", index, todo.Username).Update("content", todo.Content, "done", todo.Done)
+			if err != nil {
 
-			c.JSON(200, gin.H{"msg": "修改成功"})
+				if gorm.IsRecordNotFoundError(err) {
+					fmt.Println("没有找到符合条件的记录")
+				} else {
+					fmt.Println("发生了其他错误：", err)
+				}
+			} else {
+				c.JSON(200, gin.H{"msg": "修改成功"})
+			}
 
 		} else {
 			c.JSON(200, gin.H{"msg": "请先登录"})
 		}
+
 		defer db.Close()
 	})
 
