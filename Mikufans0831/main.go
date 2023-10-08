@@ -30,8 +30,7 @@ func time(a string) int {
 }
 func main() {
 	r := gin.Default()
-	bl.Deadline = "Nil"
-	bl.Done = false
+	bl.Done = true
 
 	// 添加 TODO
 	r.POST("/todo", func(c *gin.Context) {
@@ -69,7 +68,7 @@ func main() {
 			}
 			todos = append(todos, todo)
 		} else {
-			if todos[index].Deadline == "Nil" {
+			if todos[index].Deadline == "" {
 				for j, v := range blink {
 					if v == index {
 						blink = append(blink[:j], blink[j+1:]...)
@@ -83,9 +82,9 @@ func main() {
 
 	// 获取 TODO
 	r.GET("/todo", func(c *gin.Context) {
-		var ptodos []TODO
+		ptodos = nil
 		for i, _ := range todos {
-			if todos[i].Deadline != "Nil" {
+			if todos[i].Deadline != "" {
 				ptodos = append(ptodos, todos[i])
 			}
 		}
@@ -116,14 +115,14 @@ func main() {
 		ptodos = nil
 		blink = nil
 		for i, _ := range todos {
-			if todos[i].Deadline != "Nil" {
+			if todos[i].Deadline != "" {
 				ptodos = append(ptodos, todos[i])
 			}
 		}
 		//冒泡排序
 		for i := 0; i < len(ptodos)-1; i++ {
 			for j := 0; j < len(ptodos)-i-1; j++ {
-				if time(ptodos[j].Deadline) < time(ptodos[j+1].Deadline) {
+				if time(ptodos[j].Deadline) > time(ptodos[j+1].Deadline) {
 					temp := ptodos[j]
 					ptodos[j] = ptodos[j+1]
 					ptodos[j+1] = temp
