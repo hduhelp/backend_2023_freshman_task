@@ -133,8 +133,8 @@ func main() {
 	})
 
 	//查询某个todo完成情况
-	r.GET("/todo/{content}", func(c *gin.Context) {
-		content := c.Param("content")
+	r.GET("/todo/content", func(c *gin.Context) {
+		content := c.Query("content")
 		c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": dconn.Where("content=?", content).Find(&todos)})
 
 	})
