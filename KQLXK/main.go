@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -13,7 +14,7 @@ type TODO struct {
 	Username string `json:"username"`
 	Content  string `json:"content"`
 	Done     bool   `json"done"`
-	indexID  int    `gorm:"primary_key"`
+	IndexID  int    `gorm:"index"`
 }
 
 type UserInfo struct {
@@ -22,8 +23,8 @@ type UserInfo struct {
 }
 
 type wetherlog struct {
-	Username string
-	wether   bool
+	Username string `gorm:"column:username"`
+	Wether   string `gorm:"column:ok"`
 }
 
 var todos []TODO
@@ -56,17 +57,29 @@ func main() {
 	//添加TODO
 	r.POST("/todo", func(c *gin.Context) {
 		var todo TODO
+		var todo1 TODO
 		var logok wetherlog
 		c.BindJSON(&todo)
 		db, _ = getDBConnection("logok")
 		db.Where("username = ?", todo.Username).First(&logok)
 		defer db.Close()
-		if logok.wether == true {
+		if logok.Wether == "true" {
 			db, _ = getDBConnection("todolist")
-			db.Create(&todo)
-			c.JSON(200, gin.H{"msg": "添加成功"})
-			fmt.Printf("%v", todos)
-			defer db.Close()
+			err = db.Where("indexID =?", todo.IndexID).First(&todo1).Error
+			if err != nil {
+				if gorm.IsRecordNotFoundError(err) {
+					fmt.Println("没有找到符合条件的记录")
+				} else {
+					fmt.Println("发生了其他错误：", err)
+				}
+				c.JSON(200, gin.H{"msg": "indexID重复"})
+			} else {
+				db.Create(&todo)
+				c.JSON(200, gin.H{"msg": "添加成功"})
+				fmt.Printf("%v", todos)
+				defer db.Close()
+			}
+
 		} else {
 			c.JSON(200, gin.H{"msg": "请先登录"})
 		}
@@ -81,7 +94,7 @@ func main() {
 		db, _ = getDBConnection("logok")
 		db.Where("username = ?", todo.Username).First(&logok)
 		defer db.Close()
-		if logok.wether == true {
+		if logok.Wether == "true" {
 			index, _ := strconv.Atoi(c.Param("index"))
 			result := db.Where("indexID =?", index).First(&todo)
 			if result.RecordNotFound() {
@@ -107,17 +120,14 @@ func main() {
 	//修改TODO
 	r.PUT("/todo/:index", func(c *gin.Context) {
 		var todo TODO
-		var newtodo TODO
+
 		index, _ := strconv.Atoi(c.Param("index"))
 		c.BindJSON(&todo)
 		if wetherlogin(todo) == true {
 			db, _ = getDBConnection("todolist")
-			db.Where("indexID =?", index).First(&newtodo)
-			newtodo.indexID = todo.indexID
-			newtodo.Content = todo.Content
-			newtodo.Done = todo.Done
-			newtodo.Username = todo.Username
-			db.Save(&newtodo)
+
+			db.Model(&todo).Where("index_id =? AND username =?", index, todo.Username).Update("content", todo.Content, "done", todo.Done)
+
 			c.JSON(200, gin.H{"msg": "修改成功"})
 
 		} else {
@@ -148,8 +158,9 @@ func main() {
 		c.BindJSON(&username)
 		index, _ := strconv.Atoi(c.Param("index"))
 		todo.Username = username
-		todo.indexID = index
+		todo.IndexID = index
 		if wetherlogin(todo) == true {
+
 			db, _ = getDBConnection("todolist")
 			db.Where("indexID =? AND username =?", index, username).First(&todo)
 		} else {
@@ -161,28 +172,43 @@ func main() {
 	//注册用户
 	r.POST("/register", func(c *gin.Context) {
 		var user UserInfo
+		var user2 UserInfo
 		c.BindJSON(&user)
 		db, err := getDBConnection("yhmmm")
 		if err != nil {
 			fmt.Printf("无法连接到数据库")
 			return
 		}
-		fmt.Printf("%v", user)
-		db.Create(&user)
-		defer db.Close()
-		u := wetherlog{user.Username, false}
-		db, _ = getDBConnection("logok")
-		db.Create(&u)
+		if strings.Contains(user.Username, " ") || user.Username == "" {
+			c.JSON(200, gin.H{"msg": "用户名不能为空且不能包含空格"})
+			return
+		} else {
+			_ = db.Where("username =?", user.Username).First(&user2)
+			if user2.Username != user.Username {
+				fmt.Printf("%v", user)
+				db.Create(&user)
+				defer db.Close()
+				u := wetherlog{user.Username, "false"}
+				db, _ = getDBConnection("logok")
+				db.Create(&u)
+				defer db.Close()
+				c.JSON(200, gin.H{"注册成功": "welcome"})
+			} else {
+				c.JSON(200, gin.H{"msg": "该用户名已被注册，请更换用户名"})
+			}
 
-		c.JSON(200, gin.H{"注册成功": "welcome"})
+		}
 
 	})
 
 	//登录
 	r.POST("/login", func(c *gin.Context) {
 		var user UserInfo
+		var iflog wetherlog
 		c.BindJSON(&user)
 		db, _ = getDBConnection("yhmmm")
+		iflog.Username = user.Username
+		iflog.Wether = "false"
 		err = db.Where(&user).First(&user).Error
 		fmt.Printf("%v", err)
 		defer db.Close()
@@ -197,7 +223,7 @@ func main() {
 			c.JSON(200, gin.H{"message": "用户名或密码错误"})
 		} else {
 			db, _ = getDBConnection("logok")
-			db.Model(&user).Update("wether", true)
+			db.Model(&iflog).Update("ok", "true")
 			c.JSON(200, gin.H{"message": "登陆成功"})
 		}
 		defer db.Close()
@@ -209,12 +235,23 @@ func main() {
 		var username string
 		var user wetherlog
 		var todo TODO
-		todo.Username = username
 		c.BindJSON(&username)
+		todo.Username = username
 		if wetherlogin(todo) == true {
-			db.Where("username = ?", username).First(&user)
-			db.Model(&user).Update("wether", false)
-			c.JSON(200, gin.H{"msg": "退出成功"})
+			db, _ = getDBConnection("logok")
+			err = db.Where("username = ?", username).First(&user).Error
+			if err != nil {
+				if gorm.IsRecordNotFoundError(err) {
+					fmt.Println("没有找到符合条件的记录")
+				} else {
+					fmt.Println("发生了其他错误：", err)
+				}
+			} else {
+				fmt.Printf("%v", user)
+				db.Model(&user).Update("ok", "false")
+				c.JSON(200, gin.H{"msg": "退出成功"})
+			}
+
 		} else {
 			c.JSON(200, gin.H{"msg": "请先登录"})
 		}
@@ -240,7 +277,7 @@ func wetherlogin(todo TODO) (ok bool) {
 	db, _ := getDBConnection("logok")
 	db.Where("username = ?", todo.Username).First(&logok)
 	defer db.Close()
-	if logok.wether == true {
+	if logok.Wether == "true" {
 		ok = true
 		return ok
 	} else {
