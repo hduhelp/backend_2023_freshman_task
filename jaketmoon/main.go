@@ -129,17 +129,17 @@ func main() {
 		} else {
 			c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": todos[index]})
 		}
-
 	})
 
 	//查询某个todo完成情况
 	r.GET("/todo/content", func(c *gin.Context) {
 		content := c.Query("content")
 		c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": dconn.Where("content=?", content).Find(&todos)})
-
 	})
 
 	r.Run(":8080") //运行
+
+	//
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
