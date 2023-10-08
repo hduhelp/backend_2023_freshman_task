@@ -41,11 +41,6 @@ func Xiugai(c *gin.Context) { //地址+回调函数
 	c.JSON(200, gin.H{"状态": "ok", "已成功去掉待办事项": xiugaied, "新的待办事项列表为": todo})
 }
 
-func Chaxun(c *gin.Context) {
-	index, _ := strconv.Atoi(c.Param("index"))
-	c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": todos[index]})
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // 切片
@@ -127,7 +122,22 @@ func main() {
 	})
 
 	//查询TODO
-	r.GET("/todo/:index", Chaxun)
+	r.GET("/todo/:index", func(c *gin.Context) {
+		index, err := strconv.Atoi(c.Param("index"))
+		if err != nil { //查询失败
+			c.JSON(200, gin.H{"状态": "失败，请检查输入的序号"})
+		} else {
+			c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": todos[index]})
+		}
+
+	})
+
+	//查询某个todo完成情况
+	r.GET("/todo/{content}", func(c *gin.Context) {
+		content := c.Param("content")
+		c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": dconn.Where("content=?", content).Find(&todos)})
+
+	})
 
 	r.Run(":8080") //运行
 }
