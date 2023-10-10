@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"net/http"
 	"strconv"
 )
 
@@ -45,7 +46,7 @@ func Xiugai(c *gin.Context) { //地址+回调函数
 
 // 切片
 var todos []TODO
-var users []UserInformation
+var users UserInformation
 
 // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 func main() {
@@ -59,7 +60,6 @@ func main() {
 		fmt.Println("gorm.Open err", err)
 		return
 	}
-
 	conn.DB().SetMaxIdleConns(20)  //初始连接数
 	conn.DB().SetMaxIdleConns(200) //最大连接数
 
@@ -71,7 +71,6 @@ func main() {
 	r.POST("/users", func(c *gin.Context) { //绑定路由规则和函数，访问index的路由，将有对应的函数去处理
 		var userinformation UserInformation
 		c.BindJSON(&userinformation)
-		users = append(users, userinformation)
 		c.JSON(200, gin.H{"状态": "ok", "已成功注册用户为": userinformation})
 
 		//接下来是数据库的操作
@@ -79,6 +78,27 @@ func main() {
 		fmt.Println(res.Error)               //查看是否有错误
 		fmt.Println(res.RowsAffected)        //查看影响的行数
 
+	})
+	//用户登录
+	r.POST("/login", func(c *gin.Context) {
+		var conn *gorm.DB
+		conn, err := gorm.Open("mysql", "root:xyf1029@tcp(127.0.0.1:3306)/userinformation")
+		if err != nil { //连接失败
+			fmt.Println("gorm.Open err", err)
+			return
+		}
+
+		username := c.PostForm("username")
+		password := c.PostForm("password")
+		conn.Select("pass_wo	rd").Where("username=?", username).First(&users)
+		// 检查用户名和密码是否匹配
+		if users.PassWord == password {
+			// 生成访问令牌（可以使用JWT等方式）
+			accessToken := "your_access_token"
+			c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		}
 	})
 
 	//----------------------------------------------------------------//新增todo
@@ -98,8 +118,8 @@ func main() {
 	//新增TODO
 	r.POST("/todo", func(c *gin.Context) {
 		var todo TODO
-		c.BindJSON(&todo) //添加TODO，接受前端传来的json数据
 		todos = append(todos, todo)
+		c.BindJSON(&todo) //添加TODO，接受前端传来的json数据
 		c.JSON(200, gin.H{"状态": "ok", "已成功添加待办事项为": todo})
 		//接下来是数据库的操作
 		res := dconn.Create(&todo)    //保存数据到todolist
