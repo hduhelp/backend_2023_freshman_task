@@ -52,8 +52,8 @@ var users UserInformation
 func main() {
 	r := gin.Default() //创建一个默认路由
 
-	//------------------------------------------------------------------------------------//注册用户
-	//连接mysql数据库
+	//------------------------------------------------------------------------------------
+	//连接mysql用户信息数据库
 	var conn *gorm.DB
 	conn, err := gorm.Open("mysql", "root:xyf1029@tcp(127.0.0.1:3306)/userinformation")
 	if err != nil { //连接失败
@@ -66,6 +66,22 @@ func main() {
 	defer conn.Close()                                        //关闭数据库
 	conn.SingularTable(true)                                  //以单数表的形式
 	fmt.Println(conn.AutoMigrate(new(UserInformation)).Error) //使用AutoMigrate ()方法来实现数据库表迁移，可以自动增加表中没有的字段和索引，在Gin main.go函数中使用非常方便，不用手动运行迁移了
+
+	//连接todolist数据库
+	var dconn *gorm.DB
+	dconn, derr := gorm.Open("mysql", "root:xyf1029@tcp(127.0.0.1:3306)/todolist")
+	if derr != nil { //连接失败
+		fmt.Println("gorm.Open err", derr)
+		return
+	}
+
+	dconn.DB().SetMaxIdleConns(20)  //初始连接数
+	dconn.DB().SetMaxIdleConns(200) //最大连接数
+
+	defer dconn.Close() //关闭数据库
+	dconn.SingularTable(true)
+	fmt.Println(dconn.AutoMigrate(new(TODO)).Error)
+	//----------------------------------------------------------------------------------
 
 	//用户注册
 	r.POST("/users", func(c *gin.Context) { //绑定路由规则和函数，访问index的路由，将有对应的函数去处理
@@ -81,12 +97,6 @@ func main() {
 	})
 	//用户登录
 	r.POST("/login", func(c *gin.Context) {
-		var conn *gorm.DB
-		conn, err := gorm.Open("mysql", "root:xyf1029@tcp(127.0.0.1:3306)/userinformation")
-		if err != nil { //连接失败
-			fmt.Println("gorm.Open err", err)
-			return
-		}
 
 		username := c.PostForm("username")
 		password := c.PostForm("password")
@@ -102,19 +112,7 @@ func main() {
 	})
 
 	//----------------------------------------------------------------//新增todo
-	var dconn *gorm.DB
-	dconn, derr := gorm.Open("mysql", "root:xyf1029@tcp(127.0.0.1:3306)/todolist")
-	if derr != nil { //连接失败
-		fmt.Println("gorm.Open err", derr)
-		return
-	}
 
-	dconn.DB().SetMaxIdleConns(20)  //初始连接数
-	dconn.DB().SetMaxIdleConns(200) //最大连接数
-
-	defer dconn.Close() //关闭数据库
-	dconn.SingularTable(true)
-	fmt.Println(dconn.AutoMigrate(new(TODO)).Error)
 	//新增TODO
 	r.POST("/todo", func(c *gin.Context) {
 		var todo TODO
@@ -133,7 +131,6 @@ func main() {
 	//修改TODO
 	r.PUT("/todo/:index", Xiugai)
 
-	//---------------------------------------------------------------------//获取todo
 	//获取TODO
 	r.GET("/todo", func(c *gin.Context) {
 
