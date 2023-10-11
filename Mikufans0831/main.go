@@ -127,8 +127,6 @@ func send1(db *gorm.DB) {
 		m.SetHeader("Subject", "TODOList") // 邮件主题
 		m.SetBody("text/html", fmt.Sprintf(message, "testUser"))
 
-		// text/plain的意思是将文件设置为纯文本的形式，浏览器在获取到这种文件时并不会对其进行处理
-
 		d := gomail.NewDialer(
 			host,
 			port,
