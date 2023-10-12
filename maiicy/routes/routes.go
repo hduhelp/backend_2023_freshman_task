@@ -15,6 +15,6 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/api/todo/delete", middlewares.AuthMiddleware(), handlers.TodoDelHandler)
 	r.POST("/api/todo/update", middlewares.AuthMiddleware(), handlers.TodoUpdateHandler)
 	r.GET("/api/todo/:id", middlewares.AuthMiddleware(), handlers.GetIDTodoHandler)
-	r.GET("/api/todo/:date", middlewares.AuthMiddleware(), handlers.GetDateTodoHandler)
+	r.GET("/api/todo/before/:date", middlewares.AuthMiddleware(), handlers.GetDateTodoHandler)
 	r.GET("/api/todo/all", middlewares.AuthMiddleware(), handlers.GetAllTodoHandler)
 }
