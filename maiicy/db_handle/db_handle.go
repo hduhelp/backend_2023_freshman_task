@@ -6,28 +6,13 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	_ "github.com/mattn/go-sqlite3"
+	"login-system/models"
 	"login-system/utils"
 	"os"
 	"time"
 )
 
 var db *sql.DB // 全局数据库对象
-
-type User struct {
-	ID       int
-	Username string
-	Password string
-	Info     string
-}
-
-type Todo struct {
-	ID        int
-	UserID    int
-	Title     string
-	Completed bool
-	DueDate   string
-	CreatedAt string
-}
 
 func ConnectDatabase(dbPath string) error {
 	var isNotExist bool
@@ -115,7 +100,7 @@ func DeleteTodo(todoID int) error {
 	return nil
 }
 
-func FindTodosByUserID(userID int) ([]Todo, error) {
+func FindTodosByUserID(userID int) ([]models.Todo, error) {
 	rows, err := db.Query("SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE user_id = ?", userID)
 	if err != nil {
 		return nil, err
@@ -127,10 +112,10 @@ func FindTodosByUserID(userID int) ([]Todo, error) {
 		}
 	}(rows)
 
-	var todos []Todo
+	var todos []models.Todo
 
 	for rows.Next() {
-		var todo Todo
+		var todo models.Todo
 		err := rows.Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed, &todo.DueDate, &todo.CreatedAt)
 		if err != nil {
 			return nil, err
@@ -145,8 +130,8 @@ func FindTodosByUserID(userID int) ([]Todo, error) {
 	return todos, nil
 }
 
-func FindTodoByID(todoID int) (Todo, error) {
-	var todo Todo
+func FindTodoByID(todoID int) (models.Todo, error) {
+	var todo models.Todo
 
 	query := "SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE todo_id = ?"
 
@@ -164,9 +149,10 @@ func FindTodoByID(todoID int) (Todo, error) {
 	return todo, nil
 }
 
-func FindTodosBeforeTime(beforeTime time.Time, userID int) ([]Todo, error) {
+func FindTodosBeforeTime(beforeTime time.Time, userID int) ([]models.Todo, error) {
 	// 查询数据库中在指定时间之前、属于指定用户的Todo项
-	rows, err := db.Query("SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE due_date < ? AND user_id = ?", beforeTime, userID)
+	query := "SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE due_date < ? AND user_id = ?"
+	rows, err := db.Query(query, beforeTime, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,10 +163,10 @@ func FindTodosBeforeTime(beforeTime time.Time, userID int) ([]Todo, error) {
 		}
 	}(rows)
 
-	var todos []Todo
+	var todos []models.Todo
 
 	for rows.Next() {
-		var todo Todo
+		var todo models.Todo
 		err := rows.Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed, &todo.DueDate, &todo.CreatedAt)
 		if err != nil {
 			return nil, err
@@ -284,29 +270,29 @@ func InsertUser(username, password, info string) error {
 	return nil
 }
 
-func GetUserByID(userID int) (User, error) {
-	var user User
+func GetUserByID(userID int) (models.User, error) {
+	var user models.User
 	query := "SELECT id, username, password, info FROM users WHERE id = ?"
 	err := db.QueryRow(query, userID).Scan(&user.ID, &user.Username, &user.Password, &user.Info)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// 如果没有找到匹配的用户，可以处理相关逻辑
-			return User{}, fmt.Errorf("用户不存在")
+			return models.User{}, fmt.Errorf("用户不存在")
 		}
-		return User{}, err
+		return models.User{}, err
 	}
 	return user, nil
 }
 
-func GetUserByUsername(username string) (User, error) {
-	var result User
+func GetUserByUsername(username string) (models.User, error) {
+	var result models.User
 	query := "SELECT id, username, password, info FROM users WHERE username = ?"
 	err := db.QueryRow(query, username).Scan(&result.ID, &result.Username, &result.Password, &result.Info)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, fmt.Errorf("用户不存在")
+			return models.User{}, fmt.Errorf("用户不存在")
 		}
-		return User{}, err
+		return models.User{}, err
 	}
 	return result, nil
 }

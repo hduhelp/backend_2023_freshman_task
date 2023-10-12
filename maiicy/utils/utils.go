@@ -5,15 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"login-system/models"
 	"regexp"
 	"time"
 )
-
-type User struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
 
 var (
 	SecretKey = []byte("") // 用于签名和验证 JWT 的密钥
@@ -31,7 +26,7 @@ func CalculateMD5(input string) (string, error) {
 	return md5Str, nil
 }
 
-func GenerateJWT(user User) (string, error) {
+func GenerateJWT(user models.User) (string, error) {
 	// 定义 JWT 的有效负载
 	claims := jwt.MapClaims{
 		"id":       user.ID,
@@ -50,8 +45,8 @@ func GenerateJWT(user User) (string, error) {
 	return tokenString, nil
 }
 
-func ParseJWT(tokenString string) (User, error) {
-	var user User
+func ParseJWT(tokenString string) (models.User, error) {
+	var user models.User
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return SecretKey, nil
