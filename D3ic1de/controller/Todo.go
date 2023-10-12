@@ -72,24 +72,43 @@ func GetAll(user string) ([]Todo, error) {
 		return nil, err
 	}
 	defer db.Close()
-
-	rows, err := db.Query("SELECT id, usr, content, done FROM todolist WHERE usr = ?", user)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var todos []Todo
-	for rows.Next() {
-		var todo Todo
-		err := rows.Scan(&todo.ID, &todo.User, &todo.Content, &todo.Done)
+	if user == "admin" {
+		rows, err := db.Query("SELECT id, usr, content, done FROM todolist")
 		if err != nil {
 			return nil, err
 		}
-		todos = append(todos, todo)
-	}
+		defer rows.Close()
 
-	return todos, nil
+		var todos []Todo
+		for rows.Next() {
+			var todo Todo
+			err := rows.Scan(&todo.ID, &todo.User, &todo.Content, &todo.Done)
+			if err != nil {
+				return nil, err
+			}
+			todos = append(todos, todo)
+		}
+
+		return todos, nil
+	} else {
+		rows, err := db.Query("SELECT id, usr, content, done FROM todolist WHERE usr = ?", user)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		var todos []Todo
+		for rows.Next() {
+			var todo Todo
+			err := rows.Scan(&todo.ID, &todo.User, &todo.Content, &todo.Done)
+			if err != nil {
+				return nil, err
+			}
+			todos = append(todos, todo)
+		}
+
+		return todos, nil
+	}
 }
 
 // 删除todo

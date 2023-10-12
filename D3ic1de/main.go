@@ -97,14 +97,23 @@ func main() {
 		passwd := c.PostForm("password")
 		// 进行用户验证
 		// 执行 SQL 查询，并返回*sql.Row对象，其中包含结果集的单行记录
-		row := db.QueryRow("SELECT id, username, password FROM users WHERE username = ?", usrname)
-		err = row.Scan(&user.ID, &user.UserName, &user.Password)
-		if user.ID == 0 {
+		if len(usrname) == 0 {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{
 				"code":    422,
-				"message": "用户不存在",
+				"message": "用户名不能为空",
 			})
 			return
+		}
+		row := db.QueryRow("SELECT id, username, password FROM users WHERE username = ?", usrname)
+		err = row.Scan(&user.ID, &user.UserName, &user.Password)
+		if err != nil {
+			if user.ID == 0 {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{
+					"code":    422,
+					"message": "用户不存在",
+				})
+				return
+			}
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(passwd)); err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{
