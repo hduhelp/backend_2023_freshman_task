@@ -18,7 +18,7 @@ var timeTemplate1 string = "2006-01-02 15:04:05"
 type TODO struct {
 	ID       int
 	Content  string `json:"content"`
-	Done     bool   `json:"done"` //`"DEFAULT:true"`
+	Done     bool   `json:"done"`
 	Deadline string `json:"deadline"`
 	Priority int    `json:"priority"`
 	Unix     int64
@@ -70,7 +70,7 @@ func meiri(db *gorm.DB) {
 // 更新每日委托
 func up(db *gorm.DB) {
 	c := newWithSeconds()
-	spec := "0 0 4 * * *"
+	spec := "0 0 0 * * *"
 	// spec := "5 */2 * * * ?"
 	c.AddFunc(spec, func() {
 		meiri(db)
@@ -85,11 +85,12 @@ func late(db *gorm.DB) {
 	spec := "0 0 * * * *"
 	// spec := "5 */2 * * * ?"
 	nowUnix := time.Now().Unix()
-	db.Where("unix  <= ? AND late <> ? AND done == ?", nowUnix, true, false).Find(&todos)
+	db.Where("unix  <= ? AND late <> ? AND done = ?", nowUnix, true, false).Find(&todos)
 	c.AddFunc(spec, func() {
 		db.Model(TODO{}).Where("unix <= ?", nowUnix).Updates(TODO{Late: true})
 	})
 	c.Start()
+	send1(db)
 }
 
 // 问候
@@ -127,6 +128,8 @@ func send1(db *gorm.DB) {
 		m.SetHeader("Subject", "TODOList") // 邮件主题
 		m.SetBody("text/html", fmt.Sprintf(message, "testUser"))
 
+		// text/plain的意思是将文件设置为纯文本的形式，浏览器在获取到这种文件时并不会对其进行处理
+
 		d := gomail.NewDialer(
 			host,
 			port,
@@ -142,17 +145,6 @@ func send1(db *gorm.DB) {
 	}
 }
 
-// 定时问候
-func send2(db *gorm.DB) {
-	c := newWithSeconds()
-	spec := "0 0 * * * *"
-	// spec := "5 */2 * * * ?"
-	c.AddFunc(spec, func() {
-		send1(db)
-	})
-	c.Start()
-}
-
 func main() {
 	r := gin.Default()
 	dsn := "root:Qq563696767@tcp(127.0.0.1:3306)/go_db?charset=utf8mb4&parseTime=True&loc=Local"
@@ -161,7 +153,6 @@ func main() {
 
 	go up(db)
 	go late(db)
-	go send2(db)
 
 	// 添加 TODO
 	r.POST("/todo", func(c *gin.Context) {
@@ -188,8 +179,14 @@ func main() {
 		c.BindJSON(&new)
 		index, _ := strconv.Atoi(c.Param("index"))
 		db.Where("ID = ?", index).First(&todo)
-		Un, _ := time.ParseInLocation(timeTemplate1, todo.Deadline, time.Local)
-		todo.Unix = Un.Unix()
+		Un, _ := time.ParseInLocation(timeTemplate1, new.Deadline, time.Local)
+		new.Unix = Un.Unix()
+		if !new.Done {
+			db.Model(&todo).Select("done").Updates(map[string]interface{}{"done": false})
+		}
+		if !new.Late {
+			db.Model(&todo).Select("late").Updates(map[string]interface{}{"late": false})
+		}
 		db.Model(&todo).Updates(new)
 
 		// db.Where(xiShu{Name: "LiuBei"}).Assign(xiShu{Age: 35}).FirstOrInit(&todo)
@@ -227,6 +224,5 @@ func main() {
 		db.Order("priority").Order("unix").Find(&todos)
 		c.JSON(200, todos)
 	})
-
 	r.Run(":8080")
 }
