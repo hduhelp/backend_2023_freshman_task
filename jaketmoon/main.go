@@ -99,7 +99,7 @@ func main() {
 			accessToken := "your_access_token"
 			c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
 		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "登录失败，请检查用户名或者密码"})
 		}
 	})
 
@@ -120,16 +120,17 @@ func main() {
 	//修改TODO
 	r.PUT("/todo/:id", func(c *gin.Context) { //地址+回调函数
 		var todo TODO
-		id, _ := strconv.Atoi(c.Param("id"))
-		c.BindJSON(&todo)
-		todo.Id = id
-		xiugaide := dconn.Where("id=?", id).First(&todos)
-		res := dconn.Save(&todo)
-		if res.Error != nil {
-			fmt.Println(res.Error)
-			fmt.Println(res.RowsAffected)
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(200, gin.H{"状态": "no.请检查输入"})
+		} else {
+			c.BindJSON(&todo)
+			todo.Id = id
+			xiugaide := dconn.Where("id=?", id).First(&todos)
+			dconn.Save(&todo)
+			c.JSON(200, gin.H{"状态": "ok", "已成功去掉待办事项": xiugaide, "新的待办事项列表为": todo})
 		}
-		c.JSON(200, gin.H{"状态": "ok", "已成功去掉待办事项": xiugaide, "新的待办事项列表为": todo})
+
 	})
 
 	//获取TODO
@@ -162,7 +163,6 @@ func main() {
 
 	r.Run(":8080") //运行
 
-	//
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
