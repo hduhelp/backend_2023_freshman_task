@@ -65,7 +65,7 @@ func ParseJWT(tokenString string) (models.User, error) {
 		return user, fmt.Errorf("无效的JWT令牌有效负载")
 	}
 
-	user.ID = int(claims["id"].(float64))
+	user.ID = uint(claims["id"].(float64))
 	user.Username = claims["username"].(string)
 
 	return user, nil

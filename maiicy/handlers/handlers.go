@@ -133,7 +133,7 @@ func TodoDelHandler(c *gin.Context) {
 		return
 	}
 
-	todo, err := db_handle.FindTodoByID(todoID)
+	todo, err := db_handle.FindTodoByID(uint(todoID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
 		return
@@ -146,7 +146,7 @@ func TodoDelHandler(c *gin.Context) {
 	}
 
 	// 删除待办事项
-	err = db_handle.DeleteTodo(todoID)
+	err = db_handle.DeleteTodo(uint(todoID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
 		return
@@ -222,7 +222,7 @@ func GetIDTodoHandler(c *gin.Context) {
 		return
 	}
 
-	todo, err := db_handle.FindTodoByID(todoID)
+	todo, err := db_handle.FindTodoByID(uint(todoID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
 		return

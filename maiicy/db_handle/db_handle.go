@@ -1,196 +1,134 @@
 package db_handle
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"login-system/models"
 	"login-system/utils"
-	"os"
 	"time"
 )
 
-var db *sql.DB // 全局数据库对象
+var db *gorm.DB // 全局数据库对象
 
 func ConnectDatabase(dbPath string) error {
-	var isNotExist bool
-	_, err := os.Stat(dbPath)
-	isNotExist = os.IsNotExist(err)
-	if isNotExist {
-		file, err := os.Create(dbPath)
-		if err != nil {
-			return err
-		}
-		err2 := file.Close()
-		if err2 != nil {
-			return err2
-		}
-	}
+	var err error
 
-	db, err = sql.Open("sqlite3", dbPath)
+	// 连接到 SQLite 数据库
+	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		return err
 	}
 
-	if isNotExist {
-		createTodoSQL := `CREATE TABLE todos (
-							todo_id INTEGER PRIMARY KEY AUTOINCREMENT,
-							user_id INTEGER NOT NULL,
-							title VARCHAR(255) NOT NULL,
-							completed BOOLEAN NOT NULL DEFAULT 0,
-							created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-							due_date DATE);`
-
-		createUserSQL := `CREATE TABLE IF NOT EXISTS users (
-							id INTEGER PRIMARY KEY AUTOINCREMENT,
-							username TEXT NOT NULL,
-							password TEXT NOT NULL,
-							info TEXT);`
-
-		createJwtBlackListSQL := `CREATE TABLE jwt_blacklist (
-								id INTEGER PRIMARY KEY AUTOINCREMENT,
-								token TEXT NOT NULL,
-								expiry TIMESTAMP NOT NULL);`
-
-		_, err := db.Exec(createTodoSQL)
-		if err != nil {
-			return err
-		}
-
-		_, err = db.Exec(createUserSQL)
-		if err != nil {
-			return err
-		}
-
-		_, err = db.Exec(createJwtBlackListSQL)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func InsertTodo(userID int, title string, dueDate string) error {
-	// dueDate 以文本格式（YYYY-MM-DD）表示
-	sqlStatement := `
-		INSERT INTO todos (user_id, title, completed, due_date)
-		VALUES (?, ?, ?, ?)
-	`
-
-	_, err := db.Exec(sqlStatement, userID, title, false, dueDate)
+	err = db.AutoMigrate(&models.Todo{}, &models.User{}, &models.JWTBlacklist{})
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func DeleteTodo(todoID int) error {
-	// 准备SQL语句，根据Todo项的ID删除记录
-	sqlStatement := `
-		DELETE FROM todos
-		WHERE todo_id = ?
-	`
-	// 执行SQL语句
-	_, err := db.Exec(sqlStatement, todoID)
+func InsertTodo(userID uint, title string, dueDate string) error {
+	parsedDueDate, err := time.Parse("2006-01-02", dueDate)
 	if err != nil {
 		return err
 	}
+
+	newTodo := models.Todo{
+		UserID:    uint(userID),
+		Title:     title,
+		Completed: false,
+		DueDate:   parsedDueDate,
+	}
+
+	result := db.Create(&newTodo)
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 
-func FindTodosByUserID(userID int) ([]models.Todo, error) {
-	rows, err := db.Query("SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE user_id = ?", userID)
-	if err != nil {
-		return nil, err
+func DeleteTodo(todoID uint) error {
+
+	var todo models.Todo
+	result := db.First(&todo, todoID)
+	if result.Error != nil {
+		return result.Error
 	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
 
-		}
-	}(rows)
+	result = db.Delete(&todo)
+	if result.Error != nil {
+		return result.Error
+	}
 
+	return nil
+}
+
+func FindTodosByUserID(userID uint) ([]models.Todo, error) {
 	var todos []models.Todo
 
-	for rows.Next() {
-		var todo models.Todo
-		err := rows.Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed, &todo.DueDate, &todo.CreatedAt)
-		if err != nil {
-			return nil, err
-		}
-		todos = append(todos, todo)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+	// 使用 GORM 查询符合条件的记录
+	result := db.Where("user_id = ?", userID).Find(&todos)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
 	return todos, nil
 }
 
-func FindTodoByID(todoID int) (models.Todo, error) {
+func FindTodoByID(todoID uint) (models.Todo, error) {
 	var todo models.Todo
 
-	query := "SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE todo_id = ?"
-
-	err := db.QueryRow(query, todoID).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed, &todo.DueDate, &todo.CreatedAt)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// 如果没有找到匹配的Todo项，可以返回自定义错误或nil
+	// 使用 GORM 查询符合条件的记录
+	result := db.First(&todo, todoID)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return todo, fmt.Errorf("todo项不存在")
 		}
-		// 处理其他查询错误
-		return todo, err
+		return todo, result.Error
 	}
 
-	// 返回找到的Todo项
 	return todo, nil
 }
 
-func FindTodosBeforeTime(beforeTime time.Time, userID int) ([]models.Todo, error) {
-	// 查询数据库中在指定时间之前、属于指定用户的Todo项
-	query := "SELECT todo_id, user_id, title, completed, due_date, created_at FROM todos WHERE due_date < ? AND user_id = ?"
-	rows, err := db.Query(query, beforeTime, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			// 处理关闭行时的错误
-		}
-	}(rows)
-
+func FindTodosBeforeTime(beforeTime time.Time, userID uint) ([]models.Todo, error) {
 	var todos []models.Todo
 
-	for rows.Next() {
-		var todo models.Todo
-		err := rows.Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed, &todo.DueDate, &todo.CreatedAt)
-		if err != nil {
-			return nil, err
-		}
-		todos = append(todos, todo)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+	result := db.Where("due_date < ? AND user_id = ?", beforeTime, userID).Find(&todos)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
 	return todos, nil
 }
 
-func UpdateTodo(todoID int, newTitle string, completed bool, dueDate string) error {
-	sqlStatement := `
-		UPDATE todos
-		SET title = ?, completed = ?, due_date = ?
-		WHERE todo_id = ?
-	`
-	_, err := db.Exec(sqlStatement, newTitle, completed, dueDate, todoID)
+func UpdateTodo(todoID uint, newTitle string, completed bool, dueDate string) error {
+	var todo models.Todo
+
+	// 查找要更新的记录
+	result := db.First(&todo, todoID)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// 更新记录
+	todo.Title = newTitle
+	todo.Completed = completed
+	// 解析日期字符串
+	parsedDueDate, err := time.Parse("2006-01-02", dueDate)
 	if err != nil {
 		return err
 	}
+	todo.DueDate = parsedDueDate
+
+	result = db.Save(&todo)
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 
@@ -207,15 +145,17 @@ func InsertJWTIntoBlacklist(tokenString string) error {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		expiry := time.Unix(int64(claims["exp"].(float64)), 0)
 
-		sqlStatement := `
-			INSERT INTO jwt_blacklist (token, expiry)
-			VALUES (?, ?)
-		`
-		// 执行SQL语句
-		_, err := db.Exec(sqlStatement, tokenString, expiry)
-		if err != nil {
-			return err
+		jwtBlacklist := models.JWTBlacklist{
+			Token:  tokenString,
+			Expiry: expiry,
 		}
+
+		// 使用 GORM 创建 JWT 黑名单记录
+		result := db.Create(&jwtBlacklist)
+		if result.Error != nil {
+			return result.Error
+		}
+
 		return nil
 	}
 
@@ -225,74 +165,69 @@ func InsertJWTIntoBlacklist(tokenString string) error {
 func DeleteExpiredTokens() error {
 	currentTime := time.Now()
 
-	sqlStatement := `
-		DELETE FROM jwt_blacklist
-		WHERE expiry < ?
-	`
-	_, err := db.Exec(sqlStatement, currentTime)
-	if err != nil {
-		return err
+	// 使用 GORM 删除过期的令牌记录
+	result := db.Where("expiry < ?", currentTime).Delete(&models.JWTBlacklist{})
+	if result.Error != nil {
+		return result.Error
 	}
+
 	return nil
 }
 
 func IsTokenBlacklisted(tokenString string) (bool, error) {
-	// 查询JWT令牌是否在黑名单表中
-	rows, err := db.Query("SELECT COUNT(*) FROM jwt_blacklist WHERE token = ?", tokenString)
-	if err != nil {
-		return false, err
-	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-
-		}
-	}(rows)
-
-	var count int
-
-	for rows.Next() {
-		err := rows.Scan(&count)
-		if err != nil {
-			return false, err
-		}
+	// 使用 GORM 查询JWT令牌是否在黑名单表中
+	var count int64
+	result := db.Model(&models.JWTBlacklist{}).Where("token = ?", tokenString).Count(&count)
+	if result.Error != nil {
+		return false, result.Error
 	}
 
 	return count > 0, nil
 }
 
 func InsertUser(username, password, info string) error {
-	insertUserSQL := `INSERT INTO users (username, password, info) VALUES (?, ?, ?)`
-	_, err := db.Exec(insertUserSQL, username, password, info)
-	if err != nil {
-		return err
+	// 创建 User 记录
+	newUser := models.User{
+		Username: username,
+		Password: password,
+		Info:     info,
 	}
+
+	// 使用 GORM 创建记录
+	result := db.Create(&newUser)
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 
-func GetUserByID(userID int) (models.User, error) {
+func GetUserByID(userID uint) (models.User, error) {
 	var user models.User
-	query := "SELECT id, username, password, info FROM users WHERE id = ?"
-	err := db.QueryRow(query, userID).Scan(&user.ID, &user.Username, &user.Password, &user.Info)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// 如果没有找到匹配的用户，可以处理相关逻辑
+
+	// 使用 GORM 查询符合条件的记录
+	result := db.First(&user, userID)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return models.User{}, fmt.Errorf("用户不存在")
 		}
-		return models.User{}, err
+		return models.User{}, result.Error
 	}
+
 	return user, nil
 }
 
 func GetUserByUsername(username string) (models.User, error) {
-	var result models.User
-	query := "SELECT id, username, password, info FROM users WHERE username = ?"
-	err := db.QueryRow(query, username).Scan(&result.ID, &result.Username, &result.Password, &result.Info)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	var userResult models.User
+
+	// 使用 GORM 查询符合条件的记录
+	result := db.Where("username = ?", username).First(&userResult)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return models.User{}, fmt.Errorf("用户不存在")
 		}
-		return models.User{}, err
+		return models.User{}, result.Error
 	}
-	return result, nil
+
+	return userResult, nil
 }

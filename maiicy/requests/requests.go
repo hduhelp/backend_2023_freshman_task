@@ -17,8 +17,8 @@ type AddTodoRequest struct {
 }
 
 type UpdateTodoRequest struct {
-	TodoID    int    `json:"todo_id"  binding:"required"`
-	Title     string `json:"title"`
-	Date      string `json:"date"`
-	Completed bool   `json:"completed"`
+	TodoID    uint   `json:"todo_id"  binding:"required"`
+	Title     string `json:"title"  binding:"required"`
+	Date      string `json:"date"  binding:"required"`
+	Completed bool   `json:"completed"  binding:"required"`
 }
