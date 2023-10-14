@@ -85,9 +85,6 @@ func FindTodoByID(todoID uint) (models.Todo, error) {
 	// 使用 GORM 查询符合条件的记录
 	result := db.First(&todo, todoID)
 	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return todo, fmt.Errorf("todo项不存在")
-		}
 		return todo, result.Error
 	}
 

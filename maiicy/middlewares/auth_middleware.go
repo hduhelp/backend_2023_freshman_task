@@ -50,6 +50,13 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		user, err := utils.ParseJWT(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "无效token"})
+			return
+		}
+
+		c.Set("user", user)
 		// JWT 验证通过，且不在黑名单内，继续处理请求
 		c.Next()
 	}

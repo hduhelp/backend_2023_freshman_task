@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"errors"
+	"gorm.io/gorm"
 	"login-system/db_handle"
+	"login-system/models"
 	"login-system/requests"
 	"login-system/utils"
 	"strconv"
@@ -20,14 +23,14 @@ func RegisterHandler(c *gin.Context) {
 	}
 
 	if !utils.IsValidUsername(RegisterData.Username) {
-		c.JSON(http.StatusCreated, gin.H{"message": "用户名不合法"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "用户名不合法"})
 		return
 	}
 
 	// 检查用户名是否已经存在
 	_, err := db_handle.GetUserByUsername(RegisterData.Username)
 	if err == nil {
-		c.JSON(http.StatusCreated, gin.H{"message": "用户名已被注册"})
+		c.JSON(http.StatusConflict, gin.H{"message": "用户名已被注册"})
 		return
 	}
 
@@ -38,11 +41,11 @@ func RegisterHandler(c *gin.Context) {
 	}
 
 	if err := db_handle.InsertUser(RegisterData.Username, md5Password, RegisterData.Info); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "用户注册失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误导致用户注册失败"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "用户注册成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "用户注册成功"})
 }
 
 func LoginHandler(c *gin.Context) {
@@ -55,7 +58,7 @@ func LoginHandler(c *gin.Context) {
 
 	user, err := db_handle.GetUserByUsername(loginData.Username)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "用户名不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "用户名不存在"})
 		return
 	}
 
@@ -66,7 +69,7 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	if md5Password != user.Password {
-		c.JSON(http.StatusOK, gin.H{"message": "密码不正确"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "密码不正确"})
 		return
 	}
 
@@ -85,7 +88,7 @@ func LogoutHandler(c *gin.Context) {
 
 	err := db_handle.InsertJWTIntoBlacklist(tokenString)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "注销失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误导致登出失败"})
 		return
 	}
 
@@ -102,16 +105,11 @@ func TodoAddHandler(c *gin.Context) {
 		return
 	}
 
-	tokenString := c.GetHeader("Authorization")
-	user, err := utils.ParseJWT(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
-	err = db_handle.InsertTodo(user.ID, newTodoData.Title, newTodoData.Date)
+	err := db_handle.InsertTodo(user.ID, newTodoData.Title, newTodoData.Date)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误导致添加失败"})
 		return
 	}
 
@@ -126,14 +124,14 @@ func TodoDelHandler(c *gin.Context) {
 		return
 	}
 
-	tokenString := c.GetHeader("Authorization")
-	user, err := utils.ParseJWT(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
+	user := c.MustGet("user").(models.User)
+
+	todo, err := db_handle.FindTodoByID(uint(todoID))
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"message": "任务不存在"})
 		return
 	}
 
-	todo, err := db_handle.FindTodoByID(uint(todoID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
 		return
@@ -163,14 +161,14 @@ func TodoUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	tokenString := c.GetHeader("Authorization")
-	user, err := utils.ParseJWT(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	todo, err := db_handle.FindTodoByID(updateTodoData.TodoID)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"message": "任务不存在"})
+		return
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
 		return
@@ -191,12 +189,7 @@ func TodoUpdateHandler(c *gin.Context) {
 }
 
 func GetAllTodoHandler(c *gin.Context) {
-	tokenString := c.GetHeader("Authorization")
-	user, err := utils.ParseJWT(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	todos, err := db_handle.FindTodosByUserID(user.ID)
 	if err != nil {
@@ -215,21 +208,21 @@ func GetIDTodoHandler(c *gin.Context) {
 		return
 	}
 
-	tokenString := c.GetHeader("Authorization")
-	user, err := utils.ParseJWT(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	todo, err := db_handle.FindTodoByID(uint(todoID))
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"message": "任务不存在"})
+		return
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部错误"})
 		return
 	}
 
 	if todo.UserID != user.ID {
-		c.JSON(http.StatusNotFound, gin.H{"message": "任务不存在"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "没有权限查看此任务"})
 		return
 	}
 
@@ -244,12 +237,7 @@ func GetDateTodoHandler(c *gin.Context) {
 		return
 	}
 
-	tokenString := c.GetHeader("Authorization")
-	user, err := utils.ParseJWT(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	todos, err := db_handle.FindTodosBeforeTime(dateData, user.ID)
 	if err != nil {
