@@ -22,11 +22,6 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	if !utils.IsValidUsername(RegisterData.Username) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "用户名不合法"})
-		return
-	}
-
 	// 检查用户名是否已经存在
 	_, err := db_handle.GetUserByUsername(RegisterData.Username)
 	if err == nil {

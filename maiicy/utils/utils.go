@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"login-system/models"
-	"regexp"
 	"time"
 )
 
@@ -69,14 +68,4 @@ func ParseJWT(tokenString string) (models.User, error) {
 	user.Username = claims["username"].(string)
 
 	return user, nil
-}
-
-func IsValidUsername(username string) bool {
-	if len(username) < 3 {
-		return false
-	}
-
-	usernamePattern := "^[a-zA-Z0-9]+$"
-	match, _ := regexp.MatchString(usernamePattern, username)
-	return match
 }
