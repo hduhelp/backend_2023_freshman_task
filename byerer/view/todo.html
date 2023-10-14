@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <title>todo</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f4f4f4;
+        }
+
+        .item_list {
+            width: 100%;
+            margin-right: auto;
+            margin-left: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .add_box {
+            width: 540px;
+            height: 35px;
+            background-color: #fff;
+            border-radius: 5px;
+            margin: 50px auto 0;
+            display: flex;
+        }
+
+        #left {
+            background-color: #fff;
+            border-radius: 5px 0 0 5px;
+            border: 1px solid #ced4da;
+            border-right: 0;
+            flex: 5;
+            display: flex;
+        }
+
+        #left input[type="text"] {
+            border: none;
+            flex: 1;
+            padding-left: 12px;
+            border-radius: 5px 0 0 5px;
+            color: #6d7480;
+        }
+
+        #left input[type="text"]:focus {
+            border-color: #b7d5f7;
+            /* 获取焦点时的边框颜色 */
+            background-color: #fff;
+            /* 获取焦点时的背景颜色 */
+            box-shadow: 0 0 5px rgba(140, 186, 240, 1);
+            /* 获取焦点时的阴影效果 */
+            outline: none;
+            /* 移除默认的轮廓线 */
+        }
+
+        #right {
+            flex: 1;
+            display: flex;
+        }
+
+        #right button {
+            background-color: #6fc282;
+            text-align: center;
+            color: #fff;
+            border: none;
+            border-left: 1px solid #62b779;
+            border-radius: 0 5px 5px 0;
+            flex: 1;
+
+        }
+
+        .item {
+            width: 540px;
+            height: 60px;
+            background-color: #fff;
+            border-radius: 5px;
+            margin: 15px auto 0;
+            padding: 15px;
+            box-shadow: 0 0 5px rgba(109, 116, 128, 0.3);
+            display: flex;
+            align-items: center;
+        }
+
+
+        .item .pic {
+            width: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item .text {
+            margin: auto 0;
+            margin-left: 10px;
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="item_list">
+        <div class="add_box">
+            <div id="left">
+                <input type="text" placeholder="New Item">
+            </div>
+            <div id="right">
+                <button id="add_item">
+                    Add Item
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        //get
+        let todos = new Array();
+        const queryString = window.location.search;
+
+        const urlParams = new URLSearchParams(queryString);
+
+        const token = urlParams.get("token");
+        console.log(token);
+        fetch(`/todo?token=${token}`)
+            .then(responese => {
+                if (responese.ok) {
+                    return responese.json();
+                }
+                throw new Error("failed");
+            })
+            .then(data => {
+                todos = Array.from(data.todos);
+                todos.forEach(element => {
+                    add_item(element.content);
+                });
+            })
+
+
+
+        //todo
+        const add = document.querySelector("#add_item");
+        add.addEventListener('click', handleAdd)
+
+        let item_list = document.querySelector(".item_list");
+        item_list.addEventListener("click", (e) => {
+            let obj = e.target;
+            //add
+            if (obj.classList.contains("fa-check-square")) {
+                // todo
+                obj.classList.remove("fa-check-square");
+                obj.classList.add("fa-square")
+                obj.parentNode.nextElementSibling.style.textDecoration = 'none';
+            } else if (obj.classList.contains("fa-square")) {
+                // done
+                obj.classList.remove("fa-square")
+                obj.classList.add("fa-check-square");
+                obj.parentNode.nextElementSibling.style.textDecoration = 'line-through';
+            } else if (obj.classList.contains("fa-trash")) {
+                request_delete(obj.parentNode.previousElementSibling.innerHTML)
+                obj.parentNode.parentNode.remove();
+            }
+        })
+
+
+
+        function handleAdd() {
+            let content = document.querySelector("#left input").value;
+            if (content == '') {
+                return;
+            }
+            else add_item(content);
+            request_add(content);
+        }
+
+        function add_item(content) {
+            let grandparent = document.querySelector(".item_list");
+            let parent = document.createElement("div");
+            parent.classList.add("item");
+            grandparent.appendChild(parent);
+
+            //console.log(content);
+            let newDiv = document.createElement("div");
+            newDiv.classList.add("pic");
+
+            parent.appendChild(newDiv);
+            let newI = document.createElement("i");
+            newI.classList.add("far");
+            newI.classList.add("fa-square");
+            newDiv.appendChild(newI);
+            //div2
+            let SnewDiv = document.createElement("div");
+            SnewDiv.classList.add("text");
+            let node = document.createTextNode(content);
+            SnewDiv.appendChild(node);
+            parent.appendChild(SnewDiv);
+            //div3
+            newDiv = document.createElement("div");
+            newDiv.classList.add("pic");
+            newI = document.createElement("i");
+            newI.classList.add("fas");
+            newI.classList.add("fa-trash");
+            parent.appendChild(newDiv);
+            newDiv.appendChild(newI);
+            newI.style.color = "#dc3545";
+            document.querySelector("#left input").value = "";
+
+
+        }
+
+        async function request_add(content) {
+            try {
+                const responese = await fetch(`/todo?token=${token}`, {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({ content: content, done: false })
+                })
+                if (!responese.ok) {
+                    throw new Error("fail to fetch");
+                }
+                const data = await responese.json();
+                todos.push(data.todo);
+            }
+            catch (error) {
+                console.log(error);
+            }
+        }
+
+        async function request_delete(content) {
+            try {
+                const index = todos.findIndex(item => item.content === content);
+                let responese = await fetch(`/todo/${todos[index].id}?token=${token}`, {
+                    method: 'DELETE',
+                })
+                if (!responese.ok) {
+                    throw new Error("fail to fetch");
+                }
+                const data = await responese.json();
+                console.log(data);
+            }
+            catch (error) {
+                console.log(error);
+            }
+            
+
+        }
+    </script>
+</body>
+
+</html>

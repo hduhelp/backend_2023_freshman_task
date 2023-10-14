@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>todo</title>
+    <link rel="stylesheet" href="../static/css/index.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-box">
+            <div class="register-box hidden">
+                <h1>注册</h1>
+                <input type="text" class="username" placeholder="用户名">
+                <input type="password" placeholder="密码">
+                <input type="password" placeholder="确认密码">
+                <button type="submit">注册</button>
+            </div>
+            <div class="login-box">
+                <h1>登录</h1>
+                <input type="text" class="username" placeholder="用户名">
+                <input type="password" class="password" placeholder="密码">
+                <button id="loginBtn">登录</button>
+            </div>
+        </div>
+        <div class="con-box left">
+            <h2>欢迎来到<span>我的博客</span></h2>
+            <p>已有帐号</p>
+            <button id="login">去登录</button>
+        </div>
+        <div class="con-box right">
+            <h2>欢迎来到<span>TODO LIST</span></h2>
+            <p>没有帐号</p>
+            <button id="register">去注册</button>
+        </div>
+    </div>
+    <script>
+        let login = document.querySelector('#login');
+        let register = document.querySelector('#register');
+        let form_box = document.querySelectorAll('.form-box')[0];
+        let register_box = document.querySelectorAll('.register-box')[0];
+        let login_box = document.querySelectorAll('.login-box')[0];
+        register.addEventListener('click', () => {
+            form_box.style.transform = 'translateX(80%)';
+            login_box.classList.add('hidden');
+            register_box.classList.remove('hidden');
+        })
+        login.addEventListener('click', () => {
+            form_box.style.transform = 'translateX(0%)';
+            register_box.classList.add('hidden');
+            login_box.classList.remove('hidden');
+        })
+        //登录
+        const loginBtn = document.querySelector('#loginBtn');
+
+        loginBtn.addEventListener('click', () => {
+            const username = document.querySelector('.login-box .username').value;
+            const password = document.querySelector('.login-box .password').value;
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({ username: username, password: password })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error("Network response was not ok.");
+                })
+                .then(data => {
+                    let token;
+                    token = data.token;
+                    console.log(data);
+                    url = `/menu?token=${token}`;
+                    window.location.href = url;
+                })
+                .catch(function (error) {
+                    console.log("Error:", error);
+                })
+
+        })
+
+    </script>
+</body>
+
+</html>
