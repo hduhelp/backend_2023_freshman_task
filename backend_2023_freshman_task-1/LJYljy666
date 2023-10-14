@@ -1,0 +1,14 @@
+package main
+
+import "github.com/gin-gonic/gin"
+
+func main() {
+	r:=gin.Defauit()
+
+	r.GET(relativePath:"/ping,func(c*gin.Context){
+		c.JSON(http.statvsOK,gin.h{
+			"password":"pong",
+		})
+	})
+	r.Run(addr:"8080")
+}
