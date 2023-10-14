@@ -15,8 +15,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// 检查是否提供了 JWT
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录"})
-			c.Abort()
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
@@ -45,7 +44,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if isBlacklisted {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "token已无效"})
 			c.Abort()
 			return
 		}
