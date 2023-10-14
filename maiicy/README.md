@@ -16,6 +16,44 @@
 | `/api/todos/before/:date` | GET    | 通过日期查看日期之前的任务 |
 | `/api/todos/all`          | GET    | 查看所有任务               |
 
+## 配置文件
+
+配置文件是一个 TOML 格式文件，通常命名为 `config.toml`。
+
+以下是一个示例配置文件：
+
+```
+# 服务器配置
+ServerIP = "localhost"
+ServerPort = 8080
+
+# 数据库配置
+DBPath = "database.db"
+```
+
+你可以根据你的项目需求自定义配置文件，确保包括必要的参数和值。
+
+> jwt的秘钥`SECRET_KEY`需要存储在环境变量 (* 必要)
+
+## CLI 使用
+
+程序还支持命令行界面（CLI）以下是如何使用 CLI 参数：
+
+```
+shellCopy code
+$ ./your-app -dbPath /path/to/database.db -host localhost -port 8081
+```
+
+### 可用 CLI 参数
+
+- `-dbPath`: 指定数据库文件的路径。
+- `-host`: 指定服务器主机名。
+- `-port`: 指定服务器端口号。
+
+如果你提供了这些 CLI 参数，它们将覆盖配置文件中的对应值。
+
+
+
 ## 登陆认证
 
 要验证并获得JWT令牌，请使用有效凭据向' /api/auth/login '发出POST请求。然后，您可以将JWT令牌包含在其他请求的“Authorization”头中。
