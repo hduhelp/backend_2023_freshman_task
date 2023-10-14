@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"gopkg.in/gomail.v2"
 	"net/http"
 	"strconv"
 )
@@ -91,7 +92,7 @@ func main() {
 
 		username := c.PostForm("username")
 		password := c.PostForm("password")
-		conn.Select("pass_word").Where("username=?", username).First(&user)
+		conn.Select("pass_word").Where("name=?", username).First(&user)
 		// 检查用户名和密码是否匹配
 		if user.PassWord == password {
 			// 生成访问令牌（可以使用JWT等方式）
@@ -174,7 +175,39 @@ func main() {
 		content := c.Param("content")
 		c.JSON(200, gin.H{"状态": "ok", "查询待办事项为": dconn.Where("content=?", content).First(&todos)})
 	})
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//发送邮件
+	r.GET("/hello", func(c *gin.Context) {
+		//待办事项查询
+		dconn.Where("done=?", 0).Find(&todo)
 
+		// 创建一个新的消息
+		m := gomail.NewMessage()
+
+		// 设置发件人
+		m.SetHeader("From", "xieyifeng@aliyun.com")
+
+		// 设置收件人
+		m.SetHeader("To", "2915901086@qq.com")
+
+		// 设置主题
+		m.SetHeader("Subject", "待办事项")
+
+		// 设置邮件正文
+		m.SetBody("text/html", todo.Content)
+
+		// 设置 SMTP 服务器信息
+		d := gomail.NewDialer("smtp.aliyun.com", 587, "xieyifeng@aliyun.com", "你猜")
+
+		// 通过Dialer发送邮件
+		if err := d.DialAndSend(m); err != nil {
+			panic(err)
+		} else {
+			c.JSON(200, gin.H{"状态": "ok，发送成功"})
+		}
+
+	})
 	r.Run(":8080") //运行
 
 }
