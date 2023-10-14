@@ -1,0 +1,9 @@
+database:
+  mysql:
+    username: "数据库用户名"
+    password: "数据库密码"
+    host: "ip"
+    port: 端口
+    dbname: "数据库名"
+secret:
+  signatureKey: "设置的密钥"
