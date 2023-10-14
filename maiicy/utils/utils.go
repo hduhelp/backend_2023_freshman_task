@@ -53,7 +53,7 @@ func ParseJWT(tokenString string) (models.User, error) {
 	})
 
 	if err != nil {
-		return user, err
+		return user, fmt.Errorf("JWT 令牌解析失败: %w", err)
 	}
 
 	if !token.Valid {

@@ -19,12 +19,12 @@ func ConnectDatabase(dbPath string) error {
 	// 连接到 SQLite 数据库
 	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
-		return err
+		return fmt.Errorf("数据库连接失败: %w", err)
 	}
 
 	err = db.AutoMigrate(&models.Todo{}, &models.User{}, &models.JWTBlacklist{})
 	if err != nil {
-		return err
+		return fmt.Errorf("数据库创建表失败: %w", err)
 	}
 
 	return nil
@@ -33,7 +33,7 @@ func ConnectDatabase(dbPath string) error {
 func InsertTodo(userID uint, title string, dueDate string) error {
 	parsedDueDate, err := time.Parse("2006-01-02", dueDate)
 	if err != nil {
-		return err
+		return fmt.Errorf("日期解析失败: %w", err)
 	}
 
 	newTodo := models.Todo{
@@ -120,7 +120,7 @@ func UpdateTodo(todoID uint, newTitle string, completed bool, dueDate string) er
 	// 解析日期字符串
 	parsedDueDate, err := time.Parse("2006-01-02", dueDate)
 	if err != nil {
-		return err
+		return fmt.Errorf("日期解析失败: %w", err)
 	}
 	todo.DueDate = parsedDueDate
 
@@ -138,7 +138,7 @@ func InsertJWTIntoBlacklist(tokenString string) error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("JWT 令牌解析失败: %w", err)
 	}
 
 	// 检查JWT是否已过期

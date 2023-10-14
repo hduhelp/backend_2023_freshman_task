@@ -15,7 +15,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// 检查是否提供了 JWT
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录"})
 			c.Abort()
 			return
 		}
@@ -24,14 +24,14 @@ func AuthMiddleware() gin.HandlerFunc {
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			// 检查签名方法是否有效
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Invalid signing method")
+				return nil, fmt.Errorf("无效的签名方法")
 			}
 			return utils.SecretKey, nil
 		})
 
 		// 验证 JWT
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录"})
 			c.Abort()
 			return
 		}
@@ -39,13 +39,13 @@ func AuthMiddleware() gin.HandlerFunc {
 		// 在JWT验证通过后，检查JWT是否在黑名单内
 		isBlacklisted, err := db_handle.IsTokenBlacklisted(tokenString)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "内部错误"})
 			c.Abort()
 			return
 		}
 
 		if isBlacklisted {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录"})
 			c.Abort()
 			return
 		}
